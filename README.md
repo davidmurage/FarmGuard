@@ -1,4 +1,4 @@
- FarmGuard: AI-Powered One Health Early Warning System
+  FarmGuard: AI-Powered One Health Early Warning System
 
  Detect. Predict. Prevent.  
  FarmGuard is an AI-driven platform that integrates human, animal,
