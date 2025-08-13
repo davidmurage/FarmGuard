@@ -20,7 +20,6 @@ export default function LandingPage(){
             </div>
           </div>
 
-          {/* Phone mock / illustration placeholder */}
           <div className="hero-visual">
             <div className="phone">
               <div className="phone-notch"></div>
