@@ -11,7 +11,7 @@
 /* Card & inputs */
 .form-card{
   background:#fff;border:1px solid #E5ECE8;border-radius:var(--radius);
-  padding:22px;margin-top:16px;
+  padding:22px;margin-top:16px; 
 }
 .label{font-size:13px;color:var(--fg-muted);display:block;margin:14px 0 6px}
 .input{
