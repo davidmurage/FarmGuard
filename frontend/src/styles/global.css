@@ -1,0 +1,45 @@
+:root{
+  --fg-cream:#F6F1E7;        /* page background */
+  --fg-green:#1F6F4A;        /* primary button/brand */
+  --fg-green-600:#2B7A57;    /* accents */
+  --fg-green-100:#DDEFE6;    /* light accents / chips */
+  --fg-text:#0F1A1A;
+  --fg-muted:#5B6B65;
+  --radius:14px;
+}
+
+*{box-sizing:border-box}
+html,body,#root{height:100%}
+body{
+  margin:0;
+  font-family:Inter,system-ui,Arial,Helvetica,sans-serif;
+  color:var(--fg-text);
+  background:var(--fg-cream);
+}
+
+.container{max-width:1100px;margin:0 auto;padding:0 20px}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  height:44px;padding:0 20px;border-radius:10px;border:none;
+  font-weight:600;cursor:pointer;transition:transform .08s ease,opacity .2s;
+}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--fg-green);color:#fff}
+.btn-outline{background:#fff;border:1px solid #D7E0DB;color:var(--fg-text)}
+a{text-decoration:none;color:inherit}
+section{scroll-margin-top:80px}
+
+/* Utilities */
+.grid{display:grid;gap:24px}
+.hidden-sm{display:none}
+@media(min-width:900px){ .hidden-sm{display:block} }
+
+/* Form base */
+.input, .select, .radio{
+  width:100%;height:44px;border:1px solid #D7E0DB;border-radius:10px;
+  padding:0 12px;background:#fff;font-size:14px;color:var(--fg-text);
+}
+.label{font-size:13px;color:var(--fg-muted);display:block;margin:14px 0 6px}
+.form-card{background:#fff;border:1px solid #E5ECE8;border-radius:var(--radius);padding:22px}
+.form-actions{margin-top:14px}
+.help{font-size:12px;color:var(--fg-muted);margin-top:8px}

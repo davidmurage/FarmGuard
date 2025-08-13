@@ -1,0 +1,9 @@
+.auth-wrap{max-width:520px;margin:40px auto}
+.auth-wrap h1{font-size:28px;margin:12px 0 18px;font-weight:800}
+.roles{display:flex;gap:10px;flex-wrap:wrap}
+.role-chip{
+  display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;
+  border:1px solid #D7E0DB;background:#fff;color:var(--fg-text);cursor:pointer
+}
+.role-chip input{display:none}
+.role-chip.active{background:var(--fg-green-100);color:var(--fg-green);border-color:var(--fg-green-100)}
