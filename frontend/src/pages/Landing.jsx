@@ -65,17 +65,20 @@ export default function LandingPage(){
 
           <div className="features-grid">
             <div className="feat">
-              <div className="feat-icon" />
+              {/*<div className="feat-icon" />*/}
+              <img src="src/assets/data collection icon.jpg" alt="Data Collection" className="feat-icon" />
               <div className="feat-title">Data Collection</div>
               <div className="feat-desc">Gather information from farmers, vets, weather and satellite.</div>
             </div>
             <div className="feat">
-              <div className="feat-icon gear" />
+              {/*<div className="feat-icon gear" />*/}
+              <img src="src/assets/ai analysis icon.jpg" alt="AI Analysis" className="feat-icon" />
               <div className="feat-title">AI Analysis</div>
               <div className="feat-desc">Use AI models to assess risks based on collected data.</div>
             </div>
             <div className="feat">
-              <div className="feat-icon alert" />
+              {/*<div className="feat-icon alert" />*/}
+              <img src="src/assets/alert icon.jpg" alt="Alerts & Insights" className="feat-icon" />
               <div className="feat-title">Alerts & Insights</div>
               <div className="feat-desc">Receive instant notifications and access risk maps and dashboards.</div>
             </div>

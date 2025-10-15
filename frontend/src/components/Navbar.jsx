@@ -16,7 +16,9 @@ export default function Navbar(){
     <header className="nav-root">
       <div className="container nav-wrap">
         <Link to="/" className="brand" onClick={()=>setOpen(false)}>
-          <span className="brand-mark" />
+          {/*<span className="brand-mark" />*/}
+
+          <img src="src/assets/farm guard icon.jpg" alt="FarmGuard Logo" className="brand-mark" />
           <span className="brand-text">FarmGuard</span>
         </Link>
 
