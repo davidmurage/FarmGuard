@@ -52,38 +52,38 @@
 .nav-cta {
   display: flex;
   gap: 10px;
+  align-items: center;
 }
 
-/* Default: desktop view */
 .desktop-only {
   display: flex;
 }
+
 .mobile-only {
-  display: none !important; /* force-hide hamburger on desktop */
+  display: none !important;
 }
 
-/* Small screens only */
 @media screen and (max-width: 899px) {
   .desktop-only {
-    display: none !important; /* hide desktop links/buttons */
+    display: none !important;
   }
+
   .mobile-only {
-    display: inline-flex !important; /* show hamburger */
+    display: inline-flex !important;
   }
 }
 
-/* Hamburger styles */
 .hamburger {
   width: 44px;
   height: 44px;
   border: none;
   background: transparent;
   border-radius: 10px;
-  display: flex;               /* Flex container for vertical stacking */
-  flex-direction: column;      /* Arrange lines vertically */
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 5px;                    /* Space between the three lines */
+  gap: 5px;
   cursor: pointer;
   padding: 0;
 }
@@ -108,7 +108,6 @@
   transform: translateY(-7px) rotate(-45deg);
 }
 
-/* Mobile sheet */
 .mobile-sheet {
   position: fixed;
   inset: 0;
@@ -151,4 +150,19 @@
 .mobile-signin {
   margin-top: 6px;
   justify-content: center;
+}
+
+.nav-role {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--fg-green-100);
+  color: var(--fg-green);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.nav-contact-link {
+  font-size: 14px;
 }

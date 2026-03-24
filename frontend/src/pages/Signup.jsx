@@ -1,28 +1,39 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import axios from "axios";
+import { useState } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
+
+import { apiPost, extractApiErrorMessage } from "../lib/api";
+import { getAuth, setAuth } from "../lib/authStore";
+import { roleHome } from "../utils/auth";
 import "../styles/Signup.css";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-export default function Signup(){
-  const [form, setForm] = useState({ name:"", email:"", password:"", role:"FARMER" });
+export default function Signup() {
+  const navigate = useNavigate();
+  const currentAuth = getAuth();
+  const [form, setForm] = useState({ name: "", email: "", password: "", role: "FARMER" });
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
 
-  const on = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+  if (currentAuth.token && currentAuth.user) {
+    return <Navigate to={roleHome(currentAuth.user.role)} replace />;
+  }
 
-  const submit = async (e) => {
-    e.preventDefault(); setBusy(true); setMsg("");
-    try{
-      const { data } = await axios.post(`${API}/api/auth/register`, form);
-      localStorage.setItem("fg_token", data.token);
-      localStorage.setItem("fg_user", JSON.stringify(data.user));
-      setMsg("Account created! You are logged in.");
-    }catch(err){
-      setMsg(err?.response?.data?.message || "Registration failed");
-    }finally{
+  const onChange = (event) => {
+    setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  };
+
+  const submit = async (event) => {
+    event.preventDefault();
+    setBusy(true);
+    setMsg("");
+
+    try {
+      const data = await apiPost("/api/auth/register", form);
+      setAuth({ user: data.user, token: data.token });
+      navigate(roleHome(data.user.role), { replace: true });
+    } catch (error) {
+      setMsg(extractApiErrorMessage(error, "Registration failed."));
+    } finally {
       setBusy(false);
     }
   };
@@ -45,7 +56,7 @@ export default function Signup(){
             className="input"
             name="name"
             value={form.name}
-            onChange={on}
+            onChange={onChange}
             required
             autoComplete="name"
             placeholder="e.g., Jane Doe"
@@ -58,7 +69,7 @@ export default function Signup(){
             name="email"
             type="email"
             value={form.email}
-            onChange={on}
+            onChange={onChange}
             required
             autoComplete="email"
             placeholder="you@example.com"
@@ -72,7 +83,7 @@ export default function Signup(){
               name="password"
               type={showPwd ? "text" : "password"}
               value={form.password}
-              onChange={on}
+              onChange={onChange}
               required
               minLength={6}
               autoComplete="new-password"
@@ -82,7 +93,7 @@ export default function Signup(){
               type="button"
               className="pwd-toggle"
               aria-label={showPwd ? "Hide password" : "Show password"}
-              onClick={() => setShowPwd(v => !v)}
+              onClick={() => setShowPwd((value) => !value)}
             >
               {showPwd ? "Hide" : "Show"}
             </button>
@@ -94,21 +105,20 @@ export default function Signup(){
             name="role"
             className="input select"
             value={form.role}
-            onChange={on}
+            onChange={onChange}
             required
           >
             <option value="FARMER">Farmer</option>
             <option value="VET">Vet</option>
-            {/* Admin intentionally hidden */}
           </select>
 
           <div className="form-actions">
             <button className="btn btn-primary" disabled={busy}>
-              {busy ? "Creating..." : "Sign Up"}
+              {busy ? "Creating..." : "Create Account"}
             </button>
           </div>
 
-          {msg && <div className="help" role="status">{msg}</div>}
+          {msg ? <div className="help" role="status">{msg}</div> : null}
         </form>
       </div>
     </div>

@@ -1,36 +1,55 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import axios from "axios";
+import { useState } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
+
+import { apiPost, extractApiErrorMessage } from "../lib/api";
+import { getAuth, setAuth } from "../lib/authStore";
+import { roleHome } from "../utils/auth";
 import "../styles/Login.css";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-export default function Login(){
-  const [form, setForm] = useState({ email:"", password:"", remember:false });
+export default function Login() {
+  const navigate = useNavigate();
+  const currentAuth = getAuth();
+  const [form, setForm] = useState({
+    email: localStorage.getItem("fg_email_hint") || "",
+    password: "",
+    remember: Boolean(localStorage.getItem("fg_email_hint")),
+  });
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
 
-  const on = (e) => {
-    const { name, type, checked, value } = e.target;
-    setForm(f => ({ ...f, [name]: type === "checkbox" ? checked : value }));
+  if (currentAuth.token && currentAuth.user) {
+    return <Navigate to={roleHome(currentAuth.user.role)} replace />;
+  }
+
+  const onChange = (event) => {
+    const { name, type, checked, value } = event.target;
+    setForm((current) => ({ ...current, [name]: type === "checkbox" ? checked : value }));
   };
 
-  const submit = async (e) => {
-    e.preventDefault(); setBusy(true); setMsg("");
-    try{
-      const { data } = await axios.post(`${API}/api/auth/login`, {
+  const submit = async (event) => {
+    event.preventDefault();
+    setBusy(true);
+    setMsg("");
+
+    try {
+      const data = await apiPost("/api/auth/login", {
         email: form.email,
-        password: form.password
+        password: form.password,
       });
-      localStorage.setItem("fg_token", data.token);
-      localStorage.setItem("fg_user", JSON.stringify(data.user));
-      // Optionally persist email if remember is checked
-      if (form.remember) localStorage.setItem("fg_email_hint", form.email);
-      setMsg(`Welcome back, ${data.user.name}! Role: ${data.user.role}`);
-    }catch(err){
-      setMsg(err?.response?.data?.message || "Login failed");
-    }finally{
+
+      setAuth({ user: data.user, token: data.token });
+
+      if (form.remember) {
+        localStorage.setItem("fg_email_hint", form.email);
+      } else {
+        localStorage.removeItem("fg_email_hint");
+      }
+
+      navigate(roleHome(data.user.role), { replace: true });
+    } catch (error) {
+      setMsg(extractApiErrorMessage(error, "Login failed."));
+    } finally {
       setBusy(false);
     }
   };
@@ -41,7 +60,7 @@ export default function Login(){
         <header className="auth-header">
           <h1>Sign in</h1>
           <p className="switch-auth">
-            Don’t have an account?{" "}
+            Don't have an account?{" "}
             <Link to="/signup" className="link">Sign Up</Link>
           </p>
         </header>
@@ -54,7 +73,7 @@ export default function Login(){
             name="email"
             type="email"
             value={form.email}
-            onChange={on}
+            onChange={onChange}
             required
             autoComplete="email"
             placeholder="you@example.com"
@@ -68,7 +87,7 @@ export default function Login(){
               name="password"
               type={showPwd ? "text" : "password"}
               value={form.password}
-              onChange={on}
+              onChange={onChange}
               required
               autoComplete="current-password"
               placeholder="Your password"
@@ -77,7 +96,7 @@ export default function Login(){
               type="button"
               className="pwd-toggle"
               aria-label={showPwd ? "Hide password" : "Show password"}
-              onClick={() => setShowPwd(v => !v)}
+              onClick={() => setShowPwd((value) => !value)}
             >
               {showPwd ? "Hide" : "Show"}
             </button>
@@ -89,7 +108,7 @@ export default function Login(){
                 type="checkbox"
                 name="remember"
                 checked={form.remember}
-                onChange={on}
+                onChange={onChange}
               />
               <span>Remember me</span>
             </label>
@@ -100,11 +119,11 @@ export default function Login(){
 
           <div className="form-actions">
             <button className="btn btn-primary" disabled={busy}>
-              {busy ? "Signing in..." : "Login"}
+              {busy ? "Signing in..." : "Log In"}
             </button>
           </div>
 
-          {msg && <div className="banner" role="status">{msg}</div>}
+          {msg ? <div className="banner" role="status">{msg}</div> : null}
         </form>
       </div>
     </div>
