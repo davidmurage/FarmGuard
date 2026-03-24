@@ -1,15 +1,34 @@
 import jwt from "jsonwebtoken";
 
-export const auth = (req, res, next) => {
+import { env } from "../config/env.js";
+import { ApiError } from "../utils/apiError.js";
+
+export function auth(req, _res, next) {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
-  if (!token) return res.status(401).json({ message: "No token provided" });
+
+  if (!token) {
+    return next(new ApiError(401, "No token provided."));
+  }
+
+  if (!env.jwtSecret) {
+    return next(new ApiError(500, "JWT secret is not configured."));
+  }
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET); // { id, role, iat, exp }
-    req.user = payload;
-    next();
+    req.user = jwt.verify(token, env.jwtSecret);
+    return next();
   } catch {
-    return res.status(401).json({ message: "Invalid token" });
+    return next(new ApiError(401, "Invalid token."));
   }
-};
+}
+
+export function authorize(...roles) {
+  return (req, _res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return next(new ApiError(403, "You do not have access to this resource."));
+    }
+
+    return next();
+  };
+}

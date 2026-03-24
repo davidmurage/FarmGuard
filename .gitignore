@@ -1,0 +1,10 @@
+#bmad
+_bmad/
+_bmad-output/
+.agents
+.claude
+.cursor
+.github
+.opencode
+design-artifacts/
+docs/
