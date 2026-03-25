@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 
 import { getAuth, subscribe } from "../../lib/authStore";
+import QuickActionsPanel from "./QuickActionsPanel";
 import "../../styles/Dashboard.css";
 
-export default function DashboardShell({ title, subtitle, quickActions = [], children }) {
+export default function DashboardShell({ title, subtitle, quickActions = [], showQuickActions = true, children }) {
   const [auth, setAuth] = useState(getAuth());
 
   useEffect(() => subscribe(setAuth), []);
@@ -24,21 +25,7 @@ export default function DashboardShell({ title, subtitle, quickActions = [], chi
         </div>
       </section>
 
-      {quickActions.length ? (
-        <section className="dashboard-panel dashboard-panel-soft">
-          <div className="panel-head">
-            <div>
-              <h2>Recommended next actions</h2>
-              <p>Use these prompts to guide the next response cycle.</p>
-            </div>
-          </div>
-          <ul className="action-list">
-            {quickActions.map((action) => (
-              <li key={action}>{action}</li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      {showQuickActions ? <QuickActionsPanel quickActions={quickActions} /> : null}
 
       {children}
     </main>

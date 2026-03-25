@@ -35,6 +35,20 @@ function sanitizeReviewActions(actions) {
   return actions.map((action) => String(action).trim()).filter(Boolean);
 }
 
+function assertEditableFarmerReport(report, userId) {
+  if (!report) {
+    throw new ApiError(404, "Report not found.");
+  }
+
+  if (String(report.reporter) !== String(userId)) {
+    throw new ApiError(403, "You can only manage your own reports.");
+  }
+
+  if (report.status !== "SUBMITTED" || report.review?.reviewedAt) {
+    throw new ApiError(409, "Only submitted reports without vet review can be edited or deleted.");
+  }
+}
+
 export const createReport = asyncHandler(async (req, res) => {
   const reportType = req.body.reportType;
   const title = req.body.title?.trim();
@@ -107,6 +121,70 @@ export const listReports = asyncHandler(async (req, res) => {
   res.json({
     reports: reports.map(serializeReport),
     total: reports.length,
+  });
+});
+
+export const updateReport = asyncHandler(async (req, res) => {
+  const { reportId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(reportId)) {
+    throw new ApiError(400, "Invalid report id.");
+  }
+
+  const report = await Report.findById(reportId);
+  assertEditableFarmerReport(report, req.user.id);
+
+  const nextReportType = REPORT_TYPES.includes(req.body.reportType) ? req.body.reportType : report.reportType;
+  const nextTitle = req.body.title !== undefined ? req.body.title?.trim() : report.title;
+  const nextDescription = req.body.description !== undefined ? req.body.description?.trim() : report.description;
+  const nextLocationName = req.body.locationName !== undefined ? req.body.locationName?.trim() : report.location.name;
+  const nextCounty = req.body.county !== undefined ? req.body.county?.trim() || "Unspecified" : report.location.county;
+  const nextSeverity = REPORT_SEVERITIES.includes(req.body.severity) ? req.body.severity : report.severity;
+  const nextSymptoms = Array.isArray(req.body.symptoms) ? sanitizeSymptoms(req.body.symptoms) : report.symptoms;
+  const nextCoordinates = req.body.latitude !== undefined || req.body.longitude !== undefined
+    ? sanitizeCoordinates(req.body.latitude, req.body.longitude)
+    : report.location.coordinates;
+
+  if (!nextTitle || !nextDescription || !nextLocationName) {
+    throw new ApiError(400, "Title, description and location are required.");
+  }
+
+  report.reportType = nextReportType;
+  report.title = nextTitle;
+  report.description = nextDescription;
+  report.severity = nextSeverity;
+  report.symptoms = nextSymptoms;
+  report.location = {
+    name: nextLocationName,
+    county: nextCounty,
+    coordinates: nextCoordinates,
+  };
+
+  await report.save();
+
+  const hydratedReport = await Report.findById(reportId)
+    .populate("reporter", "name email role")
+    .populate("review.reviewedBy", "name email role");
+
+  res.json({
+    message: "Report updated successfully.",
+    report: serializeReport(hydratedReport),
+  });
+});
+
+export const deleteReport = asyncHandler(async (req, res) => {
+  const { reportId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(reportId)) {
+    throw new ApiError(400, "Invalid report id.");
+  }
+
+  const report = await Report.findById(reportId);
+  assertEditableFarmerReport(report, req.user.id);
+  await report.deleteOne();
+
+  res.json({
+    message: "Report deleted successfully.",
   });
 });
 

@@ -34,6 +34,8 @@ export function roleHome(role) {
       return "/dashboard/vet";
     case "ADMIN":
       return "/dashboard/admin";
+    case "PARTNER":
+      return "/dashboard/partner";
     default:
       return "/dashboard/farmer";
   }

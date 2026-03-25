@@ -1,15 +1,30 @@
 import Alert from "../models/Alert.js";
-import Report from "../models/Report.js";
+import Report, { REPORT_TYPES } from "../models/Report.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { buildRiskMapPayload, clampRiskMapDays, isValidRiskMapType } from "../utils/riskMap.js";
 import { serializeAlert, serializeReport } from "../utils/serializers.js";
 
 function buildSummaryCards(role, metrics) {
-  const secondLabel = role === "ADMIN" ? "Pending triage" : role === "VET" ? "Field follow-ups" : "Open follow-ups";
+  const secondLabel =
+    role === "ADMIN"
+      ? "Pending triage"
+      : role === "VET"
+        ? "Field follow-ups"
+        : role === "PARTNER"
+          ? "Open signals"
+          : "Open follow-ups";
+  const firstLabel =
+    role === "FARMER"
+      ? "My reports"
+      : role === "PARTNER"
+        ? "Signals monitored"
+        : "Reports tracked";
+  const alertLabel = role === "PARTNER" ? "Planning alerts" : "Active alerts";
 
   return [
     {
       key: "totalReports",
-      label: role === "FARMER" ? "My reports" : "Reports tracked",
+      label: firstLabel,
       value: metrics.totalReports,
       description: "Total reports available in your workspace.",
       tone: "neutral",
@@ -30,7 +45,7 @@ function buildSummaryCards(role, metrics) {
     },
     {
       key: "activeAlerts",
-      label: "Active alerts",
+      label: alertLabel,
       value: metrics.activeAlerts,
       description: "Advisories currently visible to your role.",
       tone: "success",
@@ -55,6 +70,14 @@ function buildQuickActions(role) {
     ];
   }
 
+  if (role === "PARTNER") {
+    return [
+      "Monitor anonymized hotspot movement to plan outreach and resource allocation.",
+      "Download partner-safe monthly or quarterly reports for coordination meetings.",
+      "Use trend shifts to identify counties that may need prevention support next.",
+    ];
+  }
+
   return [
     "Submit early disease, pest, or weather-related warning signs.",
     "Track alert updates for your local area.",
@@ -68,13 +91,16 @@ export const getDashboardOverview = asyncHandler(async (req, res) => {
     isActive: true,
     targetRoles: { $in: [req.user.role, "ALL"] },
   };
+  const canViewRecentReports = req.user.role !== "PARTNER";
 
   const [recentReports, activeAlerts, totalReports, openReports, highRiskReports] = await Promise.all([
-    Report.find(reportFilters)
-      .sort({ createdAt: -1 })
-      .limit(6)
-      .populate("reporter", "name email role")
-      .populate("review.reviewedBy", "name email role"),
+    canViewRecentReports
+      ? Report.find(reportFilters)
+          .sort({ createdAt: -1 })
+          .limit(6)
+          .populate("reporter", "name email role")
+          .populate("review.reviewedBy", "name email role")
+      : Promise.resolve([]),
     Alert.find(alertFilters)
       .sort({ createdAt: -1 })
       .limit(6)
@@ -98,8 +124,46 @@ export const getDashboardOverview = asyncHandler(async (req, res) => {
       highRiskReports,
       activeAlerts: activeAlerts.length,
     }),
-    recentReports: recentReports.map(serializeReport),
+    recentReports: canViewRecentReports ? recentReports.map(serializeReport) : [],
     activeAlerts: activeAlerts.map(serializeAlert),
     quickActions: buildQuickActions(req.user.role),
   });
+});
+
+export const getRiskMapOverview = asyncHandler(async (req, res) => {
+  const days = clampRiskMapDays(req.query.days);
+  const reportType = isValidRiskMapType(req.query.reportType) ? req.query.reportType : "ALL";
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const filters = {
+    createdAt: { $gte: since },
+    status: { $in: ["SUBMITTED", "UNDER_REVIEW", "VERIFIED"] },
+  };
+
+  if (REPORT_TYPES.includes(reportType)) {
+    filters.reportType = reportType;
+  }
+
+  const reports = await Report.find(filters)
+    .sort({ createdAt: -1 })
+    .limit(300)
+    .select("title reportType severity status createdAt location review.reviewedAt");
+
+  const payload = buildRiskMapPayload(reports, { days, reportType });
+
+  if (req.user.role === "PARTNER") {
+    const sanitizeHotspot = (hotspot) => ({
+      ...hotspot,
+      label: hotspot.county || "Regional cluster",
+      sampleTitles: [],
+    });
+
+    res.json({
+      ...payload,
+      hotspots: payload.hotspots.map(sanitizeHotspot),
+      topHotspots: payload.topHotspots.map(sanitizeHotspot),
+    });
+    return;
+  }
+
+  res.json(payload);
 });

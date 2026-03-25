@@ -79,3 +79,34 @@ export function serializeAlert(alert) {
     createdAt: source.createdAt,
   };
 }
+
+export function serializeKnowledgeArticle(article) {
+  const source = article.toObject ? article.toObject() : article;
+
+  return {
+    id: String(source._id),
+    title: source.title,
+    slug: source.slug,
+    summary: source.summary,
+    category: source.category,
+    audienceRoles: source.audienceRoles || [],
+    reportTypes: source.reportTypes || [],
+    tags: source.tags || [],
+    actionItems: source.actionItems || [],
+    bodySections: source.bodySections || [],
+    featured: Boolean(source.featured),
+    source: source.source,
+    publishedBy: source.publishedBy?.name
+      ? {
+          id: String(source.publishedBy._id),
+          name: source.publishedBy.name,
+          email: source.publishedBy.email,
+          role: source.publishedBy.role,
+        }
+      : source.publishedBy
+        ? { id: String(source.publishedBy) }
+        : null,
+    createdAt: source.createdAt,
+    updatedAt: source.updatedAt,
+  };
+}

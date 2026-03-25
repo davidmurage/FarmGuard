@@ -110,6 +110,7 @@ export default function Signup() {
           >
             <option value="FARMER">Farmer</option>
             <option value="VET">Vet</option>
+            <option value="PARTNER">Partner Organization</option>
           </select>
 
           <div className="form-actions">
