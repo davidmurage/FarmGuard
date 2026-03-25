@@ -9,6 +9,7 @@ import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
 import AdminDashboard from "./pages/dashboard/AdminDashboard.jsx";
 import FarmerDashboard from "./pages/dashboard/FarmerDashboard.jsx";
+import PartnerDashboard from "./pages/dashboard/PartnerDashboard.jsx";
 import VetDashboard from "./pages/dashboard/VetDashboard.jsx";
 import "./styles/global.css";
 
@@ -31,6 +32,10 @@ createRoot(document.getElementById("root")).render(
         <Route
           path="dashboard/admin"
           element={<ProtectedRoute roles={["ADMIN"]}><AdminDashboard /></ProtectedRoute>}
+        />
+        <Route
+          path="dashboard/partner"
+          element={<ProtectedRoute roles={["PARTNER"]}><PartnerDashboard /></ProtectedRoute>}
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
