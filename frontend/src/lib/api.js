@@ -1,4 +1,6 @@
-const BASE = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(/\/$/, "");
+import { API_BASE_URL } from "../utils/config";
+
+const BASE = API_BASE_URL;
 
 function safelyParseJson(value) {
   try {
