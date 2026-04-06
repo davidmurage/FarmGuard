@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import Report, { REPORT_SEVERITIES, REPORT_STATUSES, REPORT_TYPES } from "../models/Report.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { resolveLocationCoordinates } from "../utils/locationResolver.js";
 import { serializeReport } from "../utils/serializers.js";
 
 function sanitizeSymptoms(symptoms) {
@@ -25,6 +26,20 @@ function sanitizeCoordinates(latitude, longitude) {
     latitude: parsedLatitude,
     longitude: parsedLongitude,
   };
+}
+
+function resolveReportCoordinates({ latitude, longitude, locationName, county, fallbackSeed }) {
+  const explicitCoordinates = sanitizeCoordinates(latitude, longitude);
+
+  if (explicitCoordinates) {
+    return explicitCoordinates;
+  }
+
+  return resolveLocationCoordinates({
+    county,
+    locationName,
+    fallbackSeed,
+  }).coordinates;
 }
 
 function sanitizeReviewActions(actions) {
@@ -78,7 +93,13 @@ export const createReport = asyncHandler(async (req, res) => {
     location: {
       name: locationName,
       county,
-      coordinates: sanitizeCoordinates(req.body.latitude, req.body.longitude),
+      coordinates: resolveReportCoordinates({
+        latitude: req.body.latitude,
+        longitude: req.body.longitude,
+        locationName,
+        county,
+        fallbackSeed: title,
+      }),
     },
   });
 
@@ -141,9 +162,29 @@ export const updateReport = asyncHandler(async (req, res) => {
   const nextCounty = req.body.county !== undefined ? req.body.county?.trim() || "Unspecified" : report.location.county;
   const nextSeverity = REPORT_SEVERITIES.includes(req.body.severity) ? req.body.severity : report.severity;
   const nextSymptoms = Array.isArray(req.body.symptoms) ? sanitizeSymptoms(req.body.symptoms) : report.symptoms;
-  const nextCoordinates = req.body.latitude !== undefined || req.body.longitude !== undefined
-    ? sanitizeCoordinates(req.body.latitude, req.body.longitude)
-    : report.location.coordinates;
+  const hasCoordinateInput = req.body.latitude !== undefined || req.body.longitude !== undefined;
+  const locationChanged = nextLocationName !== report.location.name || nextCounty !== report.location.county;
+  const nextCoordinates = hasCoordinateInput
+    ? resolveReportCoordinates({
+        latitude: req.body.latitude,
+        longitude: req.body.longitude,
+        locationName: nextLocationName,
+        county: nextCounty,
+        fallbackSeed: report.id || report.title,
+      })
+    : locationChanged
+      ? resolveReportCoordinates({
+          locationName: nextLocationName,
+          county: nextCounty,
+          fallbackSeed: report.id || report.title,
+        })
+      : resolveReportCoordinates({
+          latitude: report.location.coordinates?.latitude,
+          longitude: report.location.coordinates?.longitude,
+          locationName: nextLocationName,
+          county: nextCounty,
+          fallbackSeed: report.id || report.title,
+        });
 
   if (!nextTitle || !nextDescription || !nextLocationName) {
     throw new ApiError(400, "Title, description and location are required.");
@@ -169,6 +210,28 @@ export const updateReport = asyncHandler(async (req, res) => {
   res.json({
     message: "Report updated successfully.",
     report: serializeReport(hydratedReport),
+  });
+});
+
+export const previewResolvedLocation = asyncHandler(async (req, res) => {
+  const locationName = req.query.locationName?.trim();
+  const county = req.query.county?.trim();
+
+  if (!locationName || !county) {
+    throw new ApiError(400, "Location and county are required.");
+  }
+
+  const resolvedLocation = resolveLocationCoordinates({
+    locationName,
+    county,
+    fallbackSeed: locationName,
+  });
+
+  res.json({
+    locationName,
+    county,
+    coordinates: resolvedLocation.coordinates,
+    source: resolvedLocation.source,
   });
 });
 

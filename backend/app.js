@@ -7,6 +7,8 @@ import authRoutes from "./routes/auth.js";
 import alertRoutes from "./routes/alerts.js";
 import analyticsRoutes from "./routes/analytics.js";
 import dashboardRoutes from "./routes/dashboard.js";
+import environmentalModelRoutes from "./routes/environmentalModel.js";
+import environmentalSignalRoutes from "./routes/environmentalSignals.js";
 import knowledgeRoutes from "./routes/knowledge.js";
 import reportRoutes from "./routes/reports.js";
 import { errorHandler, notFound } from "./middleware/errorHandler.js";
@@ -27,7 +29,7 @@ app.get("/", (_req, res) => {
   res.json({
     name: "FarmGuard API",
     status: "ok",
-    modules: ["auth", "reports", "alerts", "dashboard", "knowledge", "analytics"],
+    modules: ["auth", "reports", "alerts", "dashboard", "knowledge", "analytics", "environmental-signals", "environmental-model"],
   });
 });
 
@@ -39,6 +41,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/alerts", alertRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/environmental-signals", environmentalSignalRoutes);
+app.use("/api/environmental-model", environmentalModelRoutes);
 app.use("/api/knowledge", knowledgeRoutes);
 app.use("/api/analytics", analyticsRoutes);
 

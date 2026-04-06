@@ -1,5 +1,6 @@
 import Alert from "../models/Alert.js";
 import Report, { REPORT_TYPES } from "../models/Report.js";
+import { buildEnvironmentalBrief } from "../services/environmentalRiskService.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { buildRiskMapPayload, clampRiskMapDays, isValidRiskMapType } from "../utils/riskMap.js";
 import { serializeAlert, serializeReport } from "../utils/serializers.js";
@@ -165,5 +166,10 @@ export const getRiskMapOverview = asyncHandler(async (req, res) => {
     return;
   }
 
+  res.json(payload);
+});
+
+export const getEnvironmentalBrief = asyncHandler(async (_req, res) => {
+  const payload = await buildEnvironmentalBrief();
   res.json(payload);
 });
