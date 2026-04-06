@@ -1,15 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import AlertList from "../../components/dashboard/AlertList";
 import DashboardShell from "../../components/dashboard/DashboardShell";
 import DashboardTabs from "../../components/dashboard/DashboardTabs";
+import EnvironmentalBriefPanel from "../../components/dashboard/EnvironmentalBriefPanel";
 import KnowledgeBasePanel from "../../components/dashboard/KnowledgeBasePanel";
 import QuickActionsPanel from "../../components/dashboard/QuickActionsPanel";
 import ReportComposerModal from "../../components/dashboard/ReportComposerModal";
 import ReportTable from "../../components/dashboard/ReportTable";
 import RiskMapPanel from "../../components/dashboard/RiskMapPanel";
 import SummaryCard from "../../components/dashboard/SummaryCard";
-import { apiDelete, apiPatch, apiPost, extractApiErrorMessage } from "../../lib/api";
+import { apiDelete, apiGet, apiPatch, apiPost, extractApiErrorMessage } from "../../lib/api";
 import { useDashboardData } from "../../lib/useDashboardData";
 
 const INITIAL_FORM = {
@@ -18,8 +19,6 @@ const INITIAL_FORM = {
   description: "",
   locationName: "",
   county: "",
-  latitude: "",
-  longitude: "",
   severity: "MEDIUM",
   symptoms: "",
 };
@@ -31,8 +30,6 @@ function buildFormFromReport(report) {
     description: report.description || "",
     locationName: report.location?.name || "",
     county: report.location?.county || "",
-    latitude: report.location?.coordinates?.latitude != null ? String(report.location.coordinates.latitude) : "",
-    longitude: report.location?.coordinates?.longitude != null ? String(report.location.coordinates.longitude) : "",
     severity: report.severity || "MEDIUM",
     symptoms: (report.symptoms || []).join(", "),
   };
@@ -47,6 +44,64 @@ export default function FarmerDashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [editingReport, setEditingReport] = useState(null);
   const [deletingReportId, setDeletingReportId] = useState("");
+  const [resolvedLocation, setResolvedLocation] = useState(null);
+  const [isResolvingLocation, setIsResolvingLocation] = useState(false);
+  const [locationLookupError, setLocationLookupError] = useState("");
+
+  useEffect(() => {
+    if (!isComposerOpen) {
+      setResolvedLocation(null);
+      setIsResolvingLocation(false);
+      setLocationLookupError("");
+      return undefined;
+    }
+
+    const locationName = form.locationName.trim();
+    const county = form.county.trim();
+
+    if (!locationName || !county) {
+      setResolvedLocation(null);
+      setIsResolvingLocation(false);
+      setLocationLookupError("");
+      return undefined;
+    }
+
+    setResolvedLocation(null);
+    setIsResolvingLocation(false);
+    setLocationLookupError("");
+
+    let isCurrent = true;
+    const timeoutId = setTimeout(async () => {
+      setIsResolvingLocation(true);
+
+      try {
+        const params = new URLSearchParams({ locationName, county });
+        const response = await apiGet(`/api/reports/resolve-location?${params.toString()}`, { auth: true });
+
+        if (!isCurrent) {
+          return;
+        }
+
+        setResolvedLocation(response);
+      } catch (lookupError) {
+        if (!isCurrent) {
+          return;
+        }
+
+        setResolvedLocation(null);
+        setLocationLookupError(extractApiErrorMessage(lookupError, "Unable to fetch coordinates right now."));
+      } finally {
+        if (isCurrent) {
+          setIsResolvingLocation(false);
+        }
+      }
+    }, 350);
+
+    return () => {
+      isCurrent = false;
+      clearTimeout(timeoutId);
+    };
+  }, [form.county, form.locationName, isComposerOpen]);
 
   const onChange = (event) => {
     const { name, value } = event.target;
@@ -58,6 +113,9 @@ export default function FarmerDashboard() {
     setForm(INITIAL_FORM);
     setComposerMessage("");
     setReportCenterMessage("");
+    setResolvedLocation(null);
+    setIsResolvingLocation(false);
+    setLocationLookupError("");
     setIsComposerOpen(true);
   };
 
@@ -66,6 +124,9 @@ export default function FarmerDashboard() {
     setForm(buildFormFromReport(report));
     setComposerMessage("");
     setReportCenterMessage("");
+    setResolvedLocation(null);
+    setIsResolvingLocation(false);
+    setLocationLookupError("");
     setIsComposerOpen(true);
   };
 
@@ -78,6 +139,9 @@ export default function FarmerDashboard() {
     setEditingReport(null);
     setForm(INITIAL_FORM);
     setComposerMessage("");
+    setResolvedLocation(null);
+    setIsResolvingLocation(false);
+    setLocationLookupError("");
   };
 
   const submitReport = async (event) => {
@@ -92,6 +156,12 @@ export default function FarmerDashboard() {
           .split(",")
           .map((item) => item.trim())
           .filter(Boolean),
+        ...(resolvedLocation?.coordinates
+          ? {
+              latitude: resolvedLocation.coordinates.latitude,
+              longitude: resolvedLocation.coordinates.longitude,
+            }
+          : {}),
       };
 
       if (editingReport) {
@@ -105,6 +175,9 @@ export default function FarmerDashboard() {
       setForm(INITIAL_FORM);
       setEditingReport(null);
       setIsComposerOpen(false);
+      setResolvedLocation(null);
+      setIsResolvingLocation(false);
+      setLocationLookupError("");
       await reload();
     } catch (submitError) {
       setComposerMessage(extractApiErrorMessage(submitError, "Unable to save report."));
@@ -203,6 +276,9 @@ export default function FarmerDashboard() {
             mode={editingReport ? "edit" : "create"}
             form={form}
             message={composerMessage}
+            resolvedLocation={resolvedLocation}
+            isResolvingLocation={isResolvingLocation}
+            locationLookupError={locationLookupError}
             isSaving={isSaving}
             onChange={onChange}
             onClose={closeComposer}
@@ -217,8 +293,20 @@ export default function FarmerDashboard() {
       content: <AlertList alerts={data.activeAlerts} />,
     },
     {
+      id: "environmental-intel",
+      label: "Environmental Intel",
+      lazy: true,
+      content: (
+        <EnvironmentalBriefPanel
+          title="Environmental watch"
+          description="See how the Python scoring layer blends rainfall, humidity, heat, vegetation pressure, and recent reports around you."
+        />
+      ),
+    },
+    {
       id: "risk-map",
       label: "Risk Map",
+      lazy: true,
       content: (
         <RiskMapPanel
           title="Regional risk heatmap"

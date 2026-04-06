@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import AlertList from "../../components/dashboard/AlertList";
 import DashboardShell from "../../components/dashboard/DashboardShell";
 import DashboardTabs from "../../components/dashboard/DashboardTabs";
+import EnvironmentalBriefPanel from "../../components/dashboard/EnvironmentalBriefPanel";
 import KnowledgeBasePanel from "../../components/dashboard/KnowledgeBasePanel";
 import QuickActionsPanel from "../../components/dashboard/QuickActionsPanel";
 import ReportList from "../../components/dashboard/ReportList";
@@ -262,8 +263,20 @@ export default function VetDashboard() {
       ),
     },
     {
+      id: "environmental-intel",
+      label: "Environmental Intel",
+      lazy: true,
+      content: (
+        <EnvironmentalBriefPanel
+          title="Field environmental intelligence"
+          description="Use the Python scoring layer to blend county conditions with incoming case pressure so field teams can prioritize surveillance and follow-up."
+        />
+      ),
+    },
+    {
       id: "risk-map",
       label: "Risk Map",
+      lazy: true,
       content: (
         <RiskMapPanel
           title="Operational risk heatmap"

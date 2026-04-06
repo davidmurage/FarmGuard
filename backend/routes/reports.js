@@ -1,10 +1,11 @@
 import { Router } from "express";
 
-import { createReport, deleteReport, listReports, reviewReport, updateReport } from "../controllers/reportController.js";
+import { createReport, deleteReport, listReports, previewResolvedLocation, reviewReport, updateReport } from "../controllers/reportController.js";
 import { auth, authorize } from "../middleware/auth.js";
 
 const router = Router();
 
+router.get("/resolve-location", auth, authorize("FARMER", "VET", "ADMIN"), previewResolvedLocation);
 router.route("/").get(auth, authorize("FARMER", "VET", "ADMIN"), listReports).post(auth, authorize("FARMER", "VET"), createReport);
 router.patch("/:reportId", auth, authorize("FARMER"), updateReport);
 router.delete("/:reportId", auth, authorize("FARMER"), deleteReport);

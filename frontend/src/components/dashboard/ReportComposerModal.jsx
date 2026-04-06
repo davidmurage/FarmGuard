@@ -1,10 +1,30 @@
 import { useEffect } from "react";
 
+function formatCoordinate(value) {
+  return Number.isFinite(value) ? value.toFixed(4) : "--";
+}
+
+function formatLocationSource(source) {
+  switch (source) {
+    case "county_lookup":
+      return "Matched to the selected county.";
+    case "county_estimate":
+      return "Estimated from the location and county you entered.";
+    case "location_estimate":
+      return "Estimated from the location details you entered.";
+    default:
+      return "Coordinates will be attached automatically when you save.";
+  }
+}
+
 export default function ReportComposerModal({
   open,
   mode = "create",
   form,
   message,
+  resolvedLocation,
+  isResolvingLocation,
+  locationLookupError,
   isSaving,
   onChange,
   onClose,
@@ -106,17 +126,35 @@ export default function ReportComposerModal({
             </label>
           </div>
 
-          <div className="form-grid">
-            <label>
-              <span>Latitude (optional)</span>
-              <input className="input" name="latitude" value={form.latitude} onChange={onChange} placeholder="-0.1800" />
-            </label>
+          <section className="auto-location-card" aria-live="polite">
+            <div className="auto-location-head">
+              <div>
+                <strong>Automatic coordinates</strong>
+                <p>Enter location and county, then FarmGuard will fetch the coordinates for you.</p>
+              </div>
+              {isResolvingLocation ? <span className="auto-location-pill">Fetching...</span> : null}
+            </div>
 
-            <label>
-              <span>Longitude (optional)</span>
-              <input className="input" name="longitude" value={form.longitude} onChange={onChange} placeholder="36.5200" />
-            </label>
-          </div>
+            {resolvedLocation?.coordinates ? (
+              <>
+                <div className="auto-location-grid">
+                  <div>
+                    <span>Latitude</span>
+                    <strong>{formatCoordinate(resolvedLocation.coordinates.latitude)}</strong>
+                  </div>
+                  <div>
+                    <span>Longitude</span>
+                    <strong>{formatCoordinate(resolvedLocation.coordinates.longitude)}</strong>
+                  </div>
+                </div>
+                <p className="auto-location-source">{formatLocationSource(resolvedLocation.source)}</p>
+              </>
+            ) : locationLookupError ? (
+              <p className="auto-location-error">{locationLookupError}</p>
+            ) : (
+              <p className="auto-location-placeholder">Coordinates will appear here once both fields are filled in.</p>
+            )}
+          </section>
 
           <label>
             <span>Symptoms or indicators</span>

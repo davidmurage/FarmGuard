@@ -1,0 +1,64 @@
+{
+  "modelVersion": "fg-env-trained-20260326071251",
+  "trained": true,
+  "trainedAt": "2026-03-26T07:12:51.634429Z",
+  "trainingSamples": 25,
+  "featureNames": [
+    "rainfall_pressure",
+    "humidity_pressure",
+    "heat_pressure",
+    "vegetation_stress",
+    "soil_stress",
+    "report_density",
+    "evidence_bonus",
+    "interaction_pressure",
+    "livestock_pressure",
+    "crop_pressure",
+    "environmental_pressure"
+  ],
+  "featureMeans": [
+    0.60968421,
+    0.488,
+    0.3875,
+    0.42571429,
+    0.16666667,
+    1.7016,
+    0.4528,
+    0.23162017,
+    1.3856,
+    1.3008,
+    0.624
+  ],
+  "featureStds": [
+    0.31697909,
+    0.40877921,
+    0.4039802,
+    0.41538278,
+    0.23428378,
+    1.50348842,
+    0.16616907,
+    0.16229022,
+    1.02424247,
+    1.17538052,
+    0.80008
+  ],
+  "weights": [
+    0.64336457,
+    0.81762267,
+    2.59609694,
+    2.76236687,
+    0.61767896,
+    1.17298756,
+    0.45436271,
+    2.05396176,
+    0.64513583,
+    1.25972779,
+    0.53547286
+  ],
+  "intercept": 2.14671139,
+  "metrics": {
+    "accuracy": 1.0,
+    "loss": 0.0113,
+    "positiveRate": 0.56
+  }
+}

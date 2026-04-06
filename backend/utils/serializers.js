@@ -67,6 +67,7 @@ export function serializeAlert(alert) {
     locationName: source.locationName,
     targetRoles: source.targetRoles || [],
     actionItems: source.actionItems || [],
+    isActive: Boolean(source.isActive),
     createdBy: source.createdBy?.name
       ? {
           id: String(source.createdBy._id),
@@ -77,6 +78,36 @@ export function serializeAlert(alert) {
         ? { id: String(source.createdBy) }
         : null,
     createdAt: source.createdAt,
+    updatedAt: source.updatedAt,
+  };
+}
+
+export function serializeEnvironmentalSignal(signal) {
+  const source = signal.toObject ? signal.toObject() : signal;
+
+  return {
+    id: String(source._id),
+    county: source.county,
+    locationName: source.locationName,
+    sourceType: source.sourceType,
+    rainfallMm: source.rainfallMm,
+    humidityPct: source.humidityPct,
+    temperatureC: source.temperatureC,
+    vegetationIndex: source.vegetationIndex,
+    soilMoisturePct: source.soilMoisturePct,
+    notes: source.notes || "",
+    capturedAt: source.capturedAt,
+    createdBy: source.createdBy?.name
+      ? {
+          id: String(source.createdBy._id),
+          name: source.createdBy.name,
+          role: source.createdBy.role,
+        }
+      : source.createdBy
+        ? { id: String(source.createdBy) }
+        : null,
+    createdAt: source.createdAt,
+    updatedAt: source.updatedAt,
   };
 }
 

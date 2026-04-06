@@ -2,6 +2,7 @@ import AlertList from "../../components/dashboard/AlertList";
 import AnalyticsPanel from "../../components/dashboard/AnalyticsPanel";
 import DashboardShell from "../../components/dashboard/DashboardShell";
 import DashboardTabs from "../../components/dashboard/DashboardTabs";
+import EnvironmentalBriefPanel from "../../components/dashboard/EnvironmentalBriefPanel";
 import KnowledgeBasePanel from "../../components/dashboard/KnowledgeBasePanel";
 import QuickActionsPanel from "../../components/dashboard/QuickActionsPanel";
 import RiskMapPanel from "../../components/dashboard/RiskMapPanel";
@@ -46,10 +47,22 @@ export default function PartnerDashboard() {
     {
       id: "risk-map",
       label: "Risk Map",
+      lazy: true,
       content: (
         <RiskMapPanel
           title="Anonymized hotspot map"
           description="County-level risk clustering for planning outreach, staffing, and preventative support without exposing raw case details."
+        />
+      ),
+    },
+    {
+      id: "environmental-intel",
+      label: "Environmental Intel",
+      lazy: true,
+      content: (
+        <EnvironmentalBriefPanel
+          title="Environmental planning brief"
+          description="Use the Python-scored county environmental brief and linked report signals to plan outreach, supplies, and prevention support."
         />
       ),
     },

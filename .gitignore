@@ -8,3 +8,7 @@ _bmad-output/
 .opencode
 design-artifacts/
 docs/
+__pycache__/
+.env
+backend/.env
+frontend/.env

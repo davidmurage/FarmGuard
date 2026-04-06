@@ -15,6 +15,7 @@ export default function DashboardTabs({ tabs, defaultTab, storageKey }) {
   const baseId = useId();
   const [activeTab, setActiveTab] = useState(() => readInitialTab({ tabs, defaultTab, storageKey }));
   const fallbackTab = tabs.find((tab) => tab.id === defaultTab)?.id || tabs[0]?.id || "";
+  const [mountedTabs, setMountedTabs] = useState(() => new Set([readInitialTab({ tabs, defaultTab, storageKey })]));
 
   useEffect(() => {
     if (!tabs.length) {
@@ -33,6 +34,18 @@ export default function DashboardTabs({ tabs, defaultTab, storageKey }) {
 
     window.localStorage.setItem(storageKey, activeTab);
   }, [activeTab, storageKey, tabs.length]);
+
+  useEffect(() => {
+    setMountedTabs((current) => {
+      if (current.has(activeTab)) {
+        return current;
+      }
+
+      const next = new Set(current);
+      next.add(activeTab);
+      return next;
+    });
+  }, [activeTab]);
 
   if (!tabs.length) {
     return null;
@@ -66,6 +79,7 @@ export default function DashboardTabs({ tabs, defaultTab, storageKey }) {
       {tabs.map((tab) => {
         const tabId = `${baseId}-${tab.id}-tab`;
         const panelId = `${baseId}-${tab.id}-panel`;
+        const shouldRenderContent = !tab.lazy || mountedTabs.has(tab.id);
 
         return (
           <section
@@ -76,7 +90,7 @@ export default function DashboardTabs({ tabs, defaultTab, storageKey }) {
             className="dashboard-tab-panel"
             hidden={tab.id !== activeTab}
           >
-            {tab.content}
+            {shouldRenderContent ? tab.content : null}
           </section>
         );
       })}

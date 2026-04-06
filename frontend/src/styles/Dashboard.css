@@ -190,6 +190,12 @@
   color: var(--fg-muted);
 }
 
+.panel-head-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .dashboard-form label {
   display: block;
   margin-bottom: 14px;
@@ -344,6 +350,25 @@
   margin-top: 14px;
 }
 
+.dashboard-banner-info {
+  background: #EAF5EE;
+  color: var(--fg-green);
+}
+
+.dashboard-banner-warning {
+  background: #FFF5DE;
+  color: #8A5A00;
+}
+
+.dashboard-banner strong,
+.dashboard-banner span {
+  display: block;
+}
+
+.dashboard-banner span {
+  margin-top: 6px;
+}
+
 .dashboard-banner-error {
   margin-bottom: 18px;
   background: var(--fg-danger-100);
@@ -378,6 +403,80 @@
   color: var(--fg-muted);
   font-size: 13px;
   font-weight: 700;
+}
+
+.auto-location-card {
+  margin-bottom: 14px;
+  padding: 16px;
+  border: 1px solid #E5ECE8;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8FBF9 100%);
+}
+
+.auto-location-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.auto-location-head strong {
+  display: block;
+}
+
+.auto-location-head p,
+.auto-location-source,
+.auto-location-placeholder,
+.auto-location-error {
+  margin: 8px 0 0;
+  color: var(--fg-muted);
+  font-size: 13px;
+}
+
+.auto-location-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
+.auto-location-grid div {
+  padding: 14px;
+  border-radius: 14px;
+  background: #FFFFFF;
+  border: 1px solid #E7EFEB;
+}
+
+.auto-location-grid span,
+.auto-location-grid strong {
+  display: block;
+}
+
+.auto-location-grid span {
+  color: var(--fg-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.auto-location-grid strong {
+  margin-top: 8px;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.auto-location-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #EAF5EE;
+  color: var(--fg-green);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.auto-location-error {
+  color: var(--fg-danger);
 }
 
 .dashboard-table-wrap {
@@ -436,6 +535,13 @@
   font-size: 12px;
 }
 
+.table-detail-note {
+  display: block;
+  margin-top: 10px;
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
 .risk-map-panel {
   overflow: hidden;
 }
@@ -471,22 +577,46 @@
   border: 1px solid #EFE7D8;
 }
 
+.risk-map-canvas {
+  position: relative;
+  overflow: hidden;
+  min-height: 460px;
+  border: 1px solid #E7E1D4;
+  border-radius: 20px;
+}
+
 .risk-map-surface {
   width: 100%;
-  height: auto;
+  min-height: 460px;
+  z-index: 0;
+}
+
+.risk-map-surface.leaflet-container {
+  font: inherit;
+  background: #E7F0E8;
+}
+
+.risk-map-empty-overlay {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  z-index: 500;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 12px 30px rgba(17, 26, 26, .1);
+}
+
+.risk-map-popup strong,
+.risk-map-popup p {
   display: block;
 }
 
-.risk-map-caption {
-  font-size: 16px;
-  font-weight: 800;
-  fill: var(--fg-text);
-}
-
-.risk-map-label {
+.risk-map-popup p {
+  margin: 6px 0 0;
+  color: var(--fg-muted);
   font-size: 13px;
-  font-weight: 700;
-  fill: var(--fg-text);
 }
 
 .risk-map-legend {
@@ -608,15 +738,158 @@
 }
 
 .risk-hotspot-card {
+  width: 100%;
   padding: 14px;
   border-radius: 14px;
   border: 1px solid #E9EFEA;
   background: #FBFCFB;
+  appearance: none;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+
+.risk-hotspot-card:hover {
+  border-color: #D5E3DC;
+  transform: translateY(-1px);
+}
+
+.risk-hotspot-card.is-selected {
+  border-color: rgba(31, 111, 74, .26);
+  box-shadow: 0 14px 28px rgba(31, 111, 74, .08);
 }
 
 .risk-hotspot-card p {
   margin: 10px 0 0;
   color: var(--fg-muted);
+}
+
+.risk-hotspot-headline {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.environmental-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.environmental-summary-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.environmental-summary-card {
+  padding: 18px;
+  border: 1px solid #E5ECE8;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8FBF9 100%);
+}
+
+.environmental-summary-card span,
+.environmental-summary-card strong,
+.environmental-summary-card small {
+  display: block;
+}
+
+.environmental-summary-card span,
+.environmental-summary-card small {
+  color: var(--fg-muted);
+}
+
+.environmental-summary-card span {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.environmental-summary-card strong {
+  margin-top: 8px;
+  font-size: 28px;
+}
+
+.environmental-summary-card small {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.environmental-brief-list {
+  display: grid;
+  gap: 14px;
+}
+
+.environmental-brief-card {
+  padding: 18px;
+  border: 1px solid #E9EFEA;
+  border-radius: 16px;
+  background: #FBFCFB;
+}
+
+.environmental-brief-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.environmental-brief-head h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.environmental-brief-head p {
+  margin: 8px 0 0;
+  color: var(--fg-muted);
+}
+
+.environmental-brief-score {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.environmental-brief-score strong {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.environmental-stat-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.environmental-stat-grid div {
+  padding: 14px;
+  border-radius: 14px;
+  background: #FFFFFF;
+  border: 1px solid #E7EFEB;
+}
+
+.environmental-stat-grid span,
+.environmental-stat-grid strong {
+  display: block;
+}
+
+.environmental-stat-grid span {
+  color: var(--fg-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.environmental-stat-grid strong {
+  margin-top: 8px;
+  font-size: 20px;
+}
+
+.environmental-chip-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
 }
 
 .knowledge-panel {
@@ -983,6 +1256,8 @@
 @media (max-width: 960px) {
   .dashboard-hero,
   .panel-head,
+  .auto-location-head,
+  .environmental-brief-head,
   .analytics-report-head,
   .analytics-card-head {
     flex-direction: column;
@@ -991,8 +1266,11 @@
   .summary-grid,
   .dashboard-layout,
   .form-grid,
+  .auto-location-grid,
   .risk-map-layout,
   .risk-summary-grid,
+  .environmental-summary-grid,
+  .environmental-stat-grid,
   .knowledge-filter-row,
   .knowledge-card-grid,
   .analytics-control-row,
