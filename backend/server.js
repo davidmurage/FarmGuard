@@ -6,7 +6,7 @@ async function startServer() {
   try {
     await connectDatabase();
 
-    app.listen(env.port, () => {
+    app.listen(process.env.port, () => {
       console.log(`Server running on port ${env.port}`);
     });
   } catch (error) {
