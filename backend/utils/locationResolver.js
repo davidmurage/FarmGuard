@@ -5,7 +5,7 @@ export const KENYA_BOUNDS = {
   maxLongitude: 41.95,
 };
 
-const KNOWN_COUNTY_CENTROIDS = {
+export const KNOWN_COUNTY_CENTROIDS = {
   baringo: { latitude: 0.47, longitude: 35.98 },
   bungoma: { latitude: 0.57, longitude: 34.56 },
   busia: { latitude: 0.46, longitude: 34.11 },
@@ -104,4 +104,12 @@ export function resolveLocationCoordinates({ county, locationName, fallbackSeed 
     coordinates: deriveFallbackCoordinates(seed),
     source: countyKey ? "county_estimate" : "location_estimate",
   };
+}
+
+export function listKnownCountyCentroids() {
+  return Object.entries(KNOWN_COUNTY_CENTROIDS).map(([countyKey, coordinates]) => ({
+    countyKey,
+    county: countyKey.replace(/\b\w/g, (letter) => letter.toUpperCase()),
+    coordinates,
+  }));
 }

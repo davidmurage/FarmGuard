@@ -5,6 +5,7 @@ import DashboardShell from "../../components/dashboard/DashboardShell";
 import DashboardTabs from "../../components/dashboard/DashboardTabs";
 import EnvironmentalBriefPanel from "../../components/dashboard/EnvironmentalBriefPanel";
 import KnowledgeBasePanel from "../../components/dashboard/KnowledgeBasePanel";
+import NotificationSettingsPanel from "../../components/dashboard/NotificationSettingsPanel";
 import QuickActionsPanel from "../../components/dashboard/QuickActionsPanel";
 import ReportList from "../../components/dashboard/ReportList";
 import RiskMapPanel from "../../components/dashboard/RiskMapPanel";
@@ -32,18 +33,10 @@ function buildReviewForm(report) {
   };
 }
 
-async function loadVetReviewQueue(
-  preferredReportId,
-  setReviewQueue,
-  setSelectedReportId,
-  setReviewForm,
-  setQueueError,
-) {
+async function loadVetReviewQueue(preferredReportId, setReviewQueue, setSelectedReportId, setReviewForm, setQueueError) {
   try {
     const response = await apiGet("/api/reports?limit=20", { auth: true });
-    const reports = (response?.reports || []).filter((report) =>
-      ["SUBMITTED", "UNDER_REVIEW", "VERIFIED"].includes(report.status),
-    );
+    const reports = (response?.reports || []).filter((report) => ["SUBMITTED", "UNDER_REVIEW", "VERIFIED"].includes(report.status));
 
     setReviewQueue(reports);
     setQueueError("");
@@ -72,13 +65,7 @@ export default function VetDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    loadVetReviewQueue(
-      "",
-      setReviewQueue,
-      setSelectedReportId,
-      setReviewForm,
-      setQueueError,
-    );
+    loadVetReviewQueue("", setReviewQueue, setSelectedReportId, setReviewForm, setQueueError);
   }, []);
 
   const selectedReport = reviewQueue.find((report) => report.id === selectedReportId) || null;
@@ -125,13 +112,7 @@ export default function VetDashboard() {
       setReviewMessage("Review saved successfully.");
       await Promise.all([
         reload(),
-        loadVetReviewQueue(
-          selectedReport.id,
-          setReviewQueue,
-          setSelectedReportId,
-          setReviewForm,
-          setQueueError,
-        ),
+        loadVetReviewQueue(selectedReport.id, setReviewQueue, setSelectedReportId, setReviewForm, setQueueError),
       ]);
     } catch (submitError) {
       setReviewMessage(extractApiErrorMessage(submitError, "Unable to save review."));
@@ -152,6 +133,10 @@ export default function VetDashboard() {
             ))}
           </section>
           <QuickActionsPanel quickActions={data.quickActions} />
+          <NotificationSettingsPanel
+            title="Vet notification settings"
+            description="Save the number and delivery channels FarmGuard should use when field officers need rapid alerts and verification follow-ups."
+          />
         </>
       ),
     },

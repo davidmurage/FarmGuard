@@ -17,11 +17,65 @@ function formatList(values) {
   return values.join(", ");
 }
 
+function formatChannelLabel(channel) {
+  if (channel === "WHATSAPP") {
+    return "WhatsApp";
+  }
+
+  if (channel === "IN_APP") {
+    return "In-app";
+  }
+
+  return "SMS";
+}
+
+function formatDeliveryStatusLabel(status) {
+  switch (status) {
+    case "QUEUED":
+      return "Queued";
+    case "PARTIAL":
+      return "Partial";
+    case "FAILED":
+      return "Failed";
+    default:
+      return "In-app only";
+  }
+}
+
+function formatDeliveryStatusTone(status) {
+  switch (status) {
+    case "QUEUED":
+      return "risk-badge-low";
+    case "PARTIAL":
+      return "risk-badge-medium";
+    case "FAILED":
+      return "risk-badge-critical";
+    default:
+      return "risk-badge-medium";
+  }
+}
+
+function buildDeliveryLines(alert) {
+  const summary = alert.deliverySummary || {};
+  const lines = [];
+
+  if (alert.deliveryChannels?.includes("SMS")) {
+    lines.push(`SMS ${summary.sms?.queued || 0} queued, ${summary.sms?.failed || 0} failed, ${summary.sms?.skipped || 0} skipped`);
+  }
+
+  if (alert.deliveryChannels?.includes("WHATSAPP")) {
+    lines.push(`WhatsApp ${summary.whatsapp?.queued || 0} queued, ${summary.whatsapp?.failed || 0} failed, ${summary.whatsapp?.skipped || 0} skipped`);
+  }
+
+  return lines.length ? lines : ["No external delivery requested."];
+}
+
 export default function AlertTable({
   alerts,
   title = "Published alerts",
   description = "Published advisories currently visible across the platform.",
   onEdit,
+  onDeliver,
   onToggleActive,
   onDelete,
   processingAlertId = "",
@@ -46,7 +100,8 @@ export default function AlertTable({
                 <th>Risk</th>
                 <th>Status</th>
                 <th>Audience</th>
-                <th>Location</th>
+                <th>Channels</th>
+                <th>Delivery</th>
                 <th>Published</th>
                 <th>Actions</th>
               </tr>
@@ -56,6 +111,8 @@ export default function AlertTable({
                 const isProcessing = processingAlertId === alert.id;
                 const isDeleting = isProcessing && processingAction === "delete";
                 const isToggling = isProcessing && processingAction === "toggle";
+                const isDelivering = isProcessing && processingAction === "deliver";
+                const hasExternalChannel = alert.deliveryChannels?.some((channel) => channel === "SMS" || channel === "WHATSAPP");
 
                 return (
                   <tr key={alert.id}>
@@ -81,7 +138,31 @@ export default function AlertTable({
                       <strong>{formatList(alert.targetRoles)}</strong>
                       <span>{alert.createdBy?.name ? `By ${alert.createdBy.name}` : "FarmGuard admin"}</span>
                     </td>
-                    <td>{alert.locationName || "Regional"}</td>
+                    <td>
+                      <div className="channel-chip-row">
+                        {(alert.deliveryChannels || ["IN_APP"]).map((channel) => (
+                          <span key={channel} className="channel-chip">
+                            {formatChannelLabel(channel)}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`risk-badge ${formatDeliveryStatusTone(alert.deliveryStatus)}`}>
+                        {formatDeliveryStatusLabel(alert.deliveryStatus)}
+                      </span>
+                      <div className="delivery-detail-list">
+                        {buildDeliveryLines(alert).map((line) => (
+                          <span key={line}>{line}</span>
+                        ))}
+                        {alert.deliverySummary?.audienceSize ? (
+                          <span>Audience matched: {alert.deliverySummary.audienceSize}</span>
+                        ) : null}
+                        {alert.deliverySummary?.providerMode ? (
+                          <span>Mode: {alert.deliverySummary.providerMode}</span>
+                        ) : null}
+                      </div>
+                    </td>
                     <td>{formatDate(alert.createdAt)}</td>
                     <td>
                       <div className="table-actions">
@@ -92,6 +173,14 @@ export default function AlertTable({
                           disabled={isProcessing}
                         >
                           Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-table"
+                          onClick={() => onDeliver?.(alert)}
+                          disabled={isProcessing || !alert.isActive || !hasExternalChannel}
+                        >
+                          {isDelivering ? "Sending..." : alert.deliveryStatus === "NOT_REQUESTED" ? "Send" : "Resend"}
                         </button>
                         <button
                           type="button"
@@ -110,6 +199,7 @@ export default function AlertTable({
                           {isDeleting ? "Deleting..." : "Delete"}
                         </button>
                       </div>
+                      {!hasExternalChannel ? <span className="table-actions-note">Enable SMS or WhatsApp to send outside the dashboard.</span> : null}
                     </td>
                   </tr>
                 );

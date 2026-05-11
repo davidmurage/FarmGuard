@@ -1,9 +1,17 @@
 export function serializeUser(user) {
+  const source = user.toObject ? user.toObject() : user;
+
   return {
-    id: String(user._id),
-    name: user.name,
-    email: user.email,
-    role: user.role,
+    id: String(source._id),
+    name: source.name,
+    email: source.email,
+    role: source.role,
+    phoneNumber: source.phoneNumber || "",
+    notificationPreferences: {
+      sms: source.notificationPreferences?.sms ?? true,
+      whatsapp: source.notificationPreferences?.whatsapp ?? false,
+      inApp: source.notificationPreferences?.inApp ?? true,
+    },
   };
 }
 
@@ -55,6 +63,15 @@ export function serializeReport(report) {
   };
 }
 
+function serializeDeliveryBucket(bucket) {
+  return {
+    eligible: bucket?.eligible || 0,
+    queued: bucket?.queued || 0,
+    failed: bucket?.failed || 0,
+    skipped: bucket?.skipped || 0,
+  };
+}
+
 export function serializeAlert(alert) {
   const source = alert.toObject ? alert.toObject() : alert;
 
@@ -66,6 +83,15 @@ export function serializeAlert(alert) {
     riskLevel: source.riskLevel,
     locationName: source.locationName,
     targetRoles: source.targetRoles || [],
+    deliveryChannels: source.deliveryChannels || ["IN_APP"],
+    deliveryStatus: source.deliveryStatus || "NOT_REQUESTED",
+    deliverySummary: {
+      providerMode: source.deliverySummary?.providerMode || "",
+      audienceSize: source.deliverySummary?.audienceSize || 0,
+      lastAttemptedAt: source.deliverySummary?.lastAttemptedAt || null,
+      sms: serializeDeliveryBucket(source.deliverySummary?.sms),
+      whatsapp: serializeDeliveryBucket(source.deliverySummary?.whatsapp),
+    },
     actionItems: source.actionItems || [],
     isActive: Boolean(source.isActive),
     createdBy: source.createdBy?.name
@@ -90,6 +116,7 @@ export function serializeEnvironmentalSignal(signal) {
     county: source.county,
     locationName: source.locationName,
     sourceType: source.sourceType,
+    providerKey: source.providerKey || "",
     rainfallMm: source.rainfallMm,
     humidityPct: source.humidityPct,
     temperatureC: source.temperatureC,
@@ -97,6 +124,38 @@ export function serializeEnvironmentalSignal(signal) {
     soilMoisturePct: source.soilMoisturePct,
     notes: source.notes || "",
     capturedAt: source.capturedAt,
+    createdBy: source.createdBy?.name
+      ? {
+          id: String(source.createdBy._id),
+          name: source.createdBy.name,
+          role: source.createdBy.role,
+        }
+      : source.createdBy
+        ? { id: String(source.createdBy) }
+        : null,
+    createdAt: source.createdAt,
+    updatedAt: source.updatedAt,
+  };
+}
+
+export function serializeEnvironmentalImportJob(importJob) {
+  const source = importJob.toObject ? importJob.toObject() : importJob;
+
+  return {
+    id: String(source._id),
+    sourceType: source.sourceType,
+    importFormat: source.importFormat,
+    providerName: source.providerName || "",
+    providerKey: source.providerKey || "",
+    jobType: source.jobType || "MANUAL_IMPORT",
+    triggerMode: source.triggerMode || "MANUAL",
+    status: source.status,
+    totalRecords: source.totalRecords,
+    importedRecords: source.importedRecords,
+    failedRecords: source.failedRecords,
+    importedCounties: source.importedCounties || [],
+    errorSamples: source.errorSamples || [],
+    summaryMessage: source.summaryMessage || "",
     createdBy: source.createdBy?.name
       ? {
           id: String(source.createdBy._id),

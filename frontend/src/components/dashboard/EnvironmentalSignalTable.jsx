@@ -1,3 +1,7 @@
+import { useState } from "react";
+
+const DEFAULT_VISIBLE_SIGNALS = 8;
+
 function formatDate(value) {
   if (!value) {
     return "--";
@@ -23,6 +27,10 @@ export default function EnvironmentalSignalTable({
   onDelete,
   processingSignalId = "",
 }) {
+  const [showAllSignals, setShowAllSignals] = useState(false);
+  const hiddenSignalCount = Math.max(signals.length - DEFAULT_VISIBLE_SIGNALS, 0);
+  const visibleSignals = showAllSignals ? signals : signals.slice(0, DEFAULT_VISIBLE_SIGNALS);
+
   return (
     <section className="dashboard-panel dashboard-panel-wide">
       <div className="panel-head">
@@ -30,10 +38,27 @@ export default function EnvironmentalSignalTable({
           <h2>Environmental signals</h2>
           <p>Recent county-level conditions feeding the early-warning engine.</p>
         </div>
+        {hiddenSignalCount ? (
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => setShowAllSignals((current) => !current)}
+          >
+            {showAllSignals ? "Show priority slice" : `Show all ${signals.length}`}
+          </button>
+        ) : null}
       </div>
 
       {signals.length ? (
-        <div className="dashboard-table-wrap">
+        <p className="compact-panel-meta">
+          {showAllSignals
+            ? `Showing all ${signals.length} environmental signals in an internal scroll area.`
+            : `Showing the latest ${visibleSignals.length} signals first to keep this workspace compact.`}
+        </p>
+      ) : null}
+
+      {signals.length ? (
+        <div className={`dashboard-table-wrap ${showAllSignals ? "dashboard-table-wrap-scroll-y" : ""}`}>
           <table className="dashboard-table">
             <thead>
               <tr>
@@ -45,7 +70,7 @@ export default function EnvironmentalSignalTable({
               </tr>
             </thead>
             <tbody>
-              {signals.map((signal) => {
+              {visibleSignals.map((signal) => {
                 const isProcessing = processingSignalId === signal.id;
 
                 return (

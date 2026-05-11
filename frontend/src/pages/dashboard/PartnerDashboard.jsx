@@ -4,6 +4,7 @@ import DashboardShell from "../../components/dashboard/DashboardShell";
 import DashboardTabs from "../../components/dashboard/DashboardTabs";
 import EnvironmentalBriefPanel from "../../components/dashboard/EnvironmentalBriefPanel";
 import KnowledgeBasePanel from "../../components/dashboard/KnowledgeBasePanel";
+import NotificationSettingsPanel from "../../components/dashboard/NotificationSettingsPanel";
 import QuickActionsPanel from "../../components/dashboard/QuickActionsPanel";
 import RiskMapPanel from "../../components/dashboard/RiskMapPanel";
 import SummaryCard from "../../components/dashboard/SummaryCard";
@@ -28,6 +29,10 @@ export default function PartnerDashboard() {
             ))}
           </section>
           <QuickActionsPanel quickActions={data.quickActions} />
+          <NotificationSettingsPanel
+            title="Partner notification settings"
+            description="Save the number and channels FarmGuard can use when partner-facing advisories need to reach your planning team quickly."
+          />
         </>
       ),
     },

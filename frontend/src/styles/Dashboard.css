@@ -99,6 +99,19 @@
   min-width: 0;
 }
 
+.dashboard-subtabs {
+  margin-top: 6px;
+}
+
+.dashboard-subtabs .dashboard-tab-list {
+  margin-bottom: 14px;
+}
+
+.dashboard-subtabs .dashboard-tab {
+  padding: 10px 14px;
+  font-size: 12px;
+}
+
 .dashboard-launch-panel {
   margin-bottom: 18px;
 }
@@ -172,6 +185,10 @@
   background: linear-gradient(180deg, #FFFFFF 0%, #FBFCFB 100%);
 }
 
+.dashboard-subtabs-panel {
+  padding-top: 18px;
+}
+
 .panel-head {
   display: flex;
   justify-content: space-between;
@@ -207,6 +224,17 @@
   color: var(--fg-muted);
   font-size: 13px;
   font-weight: 600;
+}
+
+.textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.textarea-lg {
+  min-height: 240px;
+  font-family: "Consolas", "SFMono-Regular", "Menlo", monospace;
+  line-height: 1.5;
 }
 
 .form-grid {
@@ -405,6 +433,29 @@
   font-weight: 700;
 }
 
+.import-template-card {
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid #E5ECE8;
+  border-radius: 16px;
+  background: #F8FBF9;
+}
+
+.import-template-card strong {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.import-template-card pre {
+  margin: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: "Consolas", "SFMono-Regular", "Menlo", monospace;
+  font-size: 12px;
+  color: var(--fg-text);
+}
+
 .auto-location-card {
   margin-bottom: 14px;
   padding: 16px;
@@ -483,6 +534,20 @@
   overflow-x: auto;
 }
 
+.dashboard-table-wrap-scroll-y {
+  max-height: 520px;
+  overflow: auto;
+  border: 1px solid #E7EFEB;
+  border-radius: 16px;
+}
+
+.dashboard-table-wrap-scroll-y .dashboard-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #FFFFFF;
+}
+
 .dashboard-table {
   width: 100%;
   border-collapse: collapse;
@@ -540,6 +605,12 @@
   margin-top: 10px;
   color: var(--fg-muted);
   font-size: 12px;
+}
+
+.compact-panel-meta {
+  margin: -6px 0 14px;
+  color: var(--fg-muted);
+  font-size: 13px;
 }
 
 .risk-map-panel {
@@ -820,6 +891,20 @@
   gap: 14px;
 }
 
+.environmental-brief-list-expanded {
+  max-height: 900px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.environmental-brief-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .environmental-brief-card {
   padding: 18px;
   border: 1px solid #E9EFEA;
@@ -890,6 +975,38 @@
   gap: 8px;
   flex-wrap: wrap;
   margin-top: 16px;
+}
+
+.provider-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.provider-card {
+  padding: 18px;
+  border: 1px solid #E5ECE8;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F9FCFA 100%);
+}
+
+.provider-latest {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  background: #FFFFFF;
+  border: 1px solid #E7EFEB;
+}
+
+.provider-latest strong,
+.provider-latest span {
+  display: block;
+}
+
+.provider-latest span {
+  margin-top: 8px;
+  color: var(--fg-muted);
+  font-size: 13px;
 }
 
 .knowledge-panel {
@@ -1257,6 +1374,7 @@
   .dashboard-hero,
   .panel-head,
   .auto-location-head,
+  .environmental-brief-toolbar,
   .environmental-brief-head,
   .analytics-report-head,
   .analytics-card-head {
@@ -1302,5 +1420,101 @@
   .analytics-export-row {
     width: 100%;
     justify-content: flex-start;
+  }
+}
+
+.notification-panel {
+  margin-top: 18px;
+}
+
+.notification-settings-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(240px, .9fr) minmax(0, 1.1fr);
+}
+
+.settings-group-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--fg-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.checkbox-stack {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.checkbox-stack-compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.checkbox-option {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 14px;
+  border: 1px solid #E5ECE8;
+  border-radius: 14px;
+  background: #FBFCFB;
+}
+
+.checkbox-option input {
+  margin-top: 4px;
+}
+
+.checkbox-option strong,
+.checkbox-option span {
+  display: block;
+}
+
+.checkbox-option span {
+  margin-top: 6px;
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+.settings-note {
+  margin: 12px 0 0;
+  color: var(--fg-muted);
+  font-size: 13px;
+}
+
+.channel-chip-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.channel-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #F1F4F3;
+  color: var(--fg-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.delivery-detail-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.delivery-detail-list span {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 960px) {
+  .notification-settings-grid,
+  .checkbox-stack,
+  .checkbox-stack-compact {
+    grid-template-columns: 1fr;
   }
 }

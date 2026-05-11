@@ -1,4 +1,8 @@
+import { useState } from "react";
+
 import { useEnvironmentalBriefData } from "../../lib/useEnvironmentalBriefData";
+
+const DEFAULT_VISIBLE_COUNTIES = 6;
 
 function formatScore(value) {
   return Number(value || 0).toFixed(1);
@@ -36,7 +40,11 @@ export default function EnvironmentalBriefPanel({
   description = "Python-backed ML scoring that combines weather-like signals with recent FarmGuard reports.",
   refreshToken = 0,
 }) {
+  const [showAllCounties, setShowAllCounties] = useState(false);
   const { data, isLoading, error } = useEnvironmentalBriefData(refreshToken);
+  const rankedCounties = [...data.counties].sort((left, right) => (right.combinedRiskScore || 0) - (left.combinedRiskScore || 0));
+  const hiddenCountyCount = Math.max(rankedCounties.length - DEFAULT_VISIBLE_COUNTIES, 0);
+  const visibleCounties = showAllCounties ? rankedCounties : rankedCounties.slice(0, DEFAULT_VISIBLE_COUNTIES);
   const engineBannerClass =
     data.scoring.status === "online"
       ? "dashboard-banner dashboard-banner-info"
@@ -94,9 +102,27 @@ export default function EnvironmentalBriefPanel({
         </article>
       </div>
 
-      {data.counties.length ? (
-        <div className="environmental-brief-list">
-          {data.counties.map((county) => (
+      {rankedCounties.length ? (
+        <>
+          <div className="environmental-brief-toolbar">
+            <p className="compact-panel-meta">
+              {showAllCounties
+                ? `Showing all ${rankedCounties.length} counties by current combined risk score.`
+                : `Showing the top ${visibleCounties.length} counties by current combined risk score first.`}
+            </p>
+            {hiddenCountyCount ? (
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => setShowAllCounties((current) => !current)}
+              >
+                {showAllCounties ? "Show priority counties" : `Show all ${rankedCounties.length}`}
+              </button>
+            ) : null}
+          </div>
+
+          <div className={`environmental-brief-list ${showAllCounties ? "environmental-brief-list-expanded" : ""}`}>
+            {visibleCounties.map((county) => (
             <article key={county.county} className="environmental-brief-card">
               <div className="environmental-brief-head">
                 <div>
@@ -165,8 +191,9 @@ export default function EnvironmentalBriefPanel({
                 <span>Latest {formatDate(county.latestCapturedAt)}</span>
               </div>
             </article>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       ) : (
         <div className="empty-state">No environmental signals have been logged yet. Add county conditions first to generate early-warning recommendations.</div>
       )}

@@ -9,7 +9,15 @@ import "../styles/Signup.css";
 export default function Signup() {
   const navigate = useNavigate();
   const currentAuth = getAuth();
-  const [form, setForm] = useState({ name: "", email: "", password: "", role: "FARMER" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "FARMER",
+    phoneNumber: "",
+    smsOptIn: true,
+    whatsappOptIn: true,
+  });
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
@@ -19,7 +27,11 @@ export default function Signup() {
   }
 
   const onChange = (event) => {
-    setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+    const { name, type, checked, value } = event.target;
+    setForm((current) => ({
+      ...current,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
 
   const submit = async (event) => {
@@ -28,7 +40,18 @@ export default function Signup() {
     setMsg("");
 
     try {
-      const data = await apiPost("/api/auth/register", form);
+      const data = await apiPost("/api/auth/register", {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        role: form.role,
+        phoneNumber: form.phoneNumber,
+        notificationPreferences: {
+          sms: form.smsOptIn,
+          whatsapp: form.whatsappOptIn,
+          inApp: true,
+        },
+      });
       setAuth({ user: data.user, token: data.token });
       navigate(roleHome(data.user.role), { replace: true });
     } catch (error) {
@@ -75,6 +98,17 @@ export default function Signup() {
             placeholder="you@example.com"
           />
 
+          <label className="label" htmlFor="phoneNumber">Phone number</label>
+          <input
+            id="phoneNumber"
+            className="input"
+            name="phoneNumber"
+            value={form.phoneNumber}
+            onChange={onChange}
+            autoComplete="tel"
+            placeholder="+254712345678"
+          />
+
           <label className="label" htmlFor="password">Password</label>
           <div className="password-wrap">
             <input
@@ -112,6 +146,16 @@ export default function Signup() {
             <option value="VET">Vet</option>
             <option value="PARTNER">Partner Organization</option>
           </select>
+
+          <label className="remember">
+            <input type="checkbox" name="smsOptIn" checked={form.smsOptIn} onChange={onChange} />
+            <span>Receive urgent SMS alerts</span>
+          </label>
+
+          <label className="remember">
+            <input type="checkbox" name="whatsappOptIn" checked={form.whatsappOptIn} onChange={onChange} />
+            <span>Receive WhatsApp alerts on the same number</span>
+          </label>
 
           <div className="form-actions">
             <button className="btn btn-primary" disabled={busy}>
