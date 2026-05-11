@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 
 import AlertComposerModal from "../../components/dashboard/AlertComposerModal";
 import AlertTable from "../../components/dashboard/AlertTable";
@@ -526,11 +526,17 @@ export default function AdminDashboard() {
             ))}
           </section>
           <QuickActionsPanel quickActions={data.quickActions} />
-          <NotificationSettingsPanel
-            title="Admin notification settings"
-            description="Save the phone number and delivery channels you want FarmGuard to use when urgent command alerts need to reach you."
-          />
         </>
+      ),
+    },
+    {
+      id: "profile",
+      label: "Profile",
+      content: (
+        <NotificationSettingsPanel
+          title="Admin profile"
+          description="Manage your command account details, delivery channels, and password without leaving the admin workspace."
+        />
       ),
     },
     {
@@ -705,3 +711,4 @@ export default function AdminDashboard() {
     </DashboardShell>
   );
 }
+

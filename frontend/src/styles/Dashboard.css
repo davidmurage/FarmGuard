@@ -1,4 +1,4 @@
-.dashboard-page {
+﻿.dashboard-page {
   padding: 28px 20px 56px;
 }
 
@@ -1511,10 +1511,80 @@
   font-size: 12px;
 }
 
+.profile-panel {
+  margin-top: 0;
+}
+
+.profile-meta-row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 18px;
+}
+
+.profile-meta-chip {
+  padding: 16px;
+  border: 1px solid #E5ECE8;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8FBF9 100%);
+}
+
+.profile-meta-chip span,
+.profile-meta-chip strong,
+.profile-meta-chip small {
+  display: block;
+}
+
+.profile-meta-chip span,
+.profile-meta-chip small {
+  color: var(--fg-muted);
+}
+
+.profile-meta-chip span {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.profile-meta-chip strong {
+  margin-top: 8px;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.profile-meta-chip small {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.profile-section {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid #E5ECE8;
+  border-radius: 16px;
+  background: #FBFCFB;
+}
+
+.profile-section-head {
+  margin-bottom: 14px;
+}
+
+.profile-section-head h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.profile-section-head p {
+  margin: 8px 0 0;
+  color: var(--fg-muted);
+  font-size: 13px;
+}
+
 @media (max-width: 960px) {
   .notification-settings-grid,
   .checkbox-stack,
-  .checkbox-stack-compact {
+  .checkbox-stack-compact,
+  .profile-meta-row {
     grid-template-columns: 1fr;
   }
 }
+

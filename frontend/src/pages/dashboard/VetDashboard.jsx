@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 
 import AlertList from "../../components/dashboard/AlertList";
 import DashboardShell from "../../components/dashboard/DashboardShell";
@@ -133,11 +133,17 @@ export default function VetDashboard() {
             ))}
           </section>
           <QuickActionsPanel quickActions={data.quickActions} />
-          <NotificationSettingsPanel
-            title="Vet notification settings"
-            description="Save the number and delivery channels FarmGuard should use when field officers need rapid alerts and verification follow-ups."
-          />
         </>
+      ),
+    },
+    {
+      id: "profile",
+      label: "Profile",
+      content: (
+        <NotificationSettingsPanel
+          title="Vet profile"
+          description="Keep your account details, contact number, alert channels, and password current for field response work."
+        />
       ),
     },
     {
@@ -297,3 +303,4 @@ export default function VetDashboard() {
     </DashboardShell>
   );
 }
+

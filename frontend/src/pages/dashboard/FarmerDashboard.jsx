@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 
 import AlertList from "../../components/dashboard/AlertList";
 import DashboardShell from "../../components/dashboard/DashboardShell";
@@ -225,11 +225,17 @@ export default function FarmerDashboard() {
             ))}
           </section>
           <QuickActionsPanel quickActions={data.quickActions} />
-          <NotificationSettingsPanel
-            title="Farmer notification settings"
-            description="Save the phone number and channels you want FarmGuard to use when local disease or pest alerts need to reach you quickly."
-          />
         </>
+      ),
+    },
+    {
+      id: "profile",
+      label: "Profile",
+      content: (
+        <NotificationSettingsPanel
+          title="Farmer profile"
+          description="Update your personal details, saved contact number, alert channels, and password from one place."
+        />
       ),
     },
     {
@@ -346,3 +352,4 @@ export default function FarmerDashboard() {
     </DashboardShell>
   );
 }
+

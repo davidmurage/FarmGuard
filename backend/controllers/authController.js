@@ -1,4 +1,4 @@
-import bcrypt from "bcryptjs";
+﻿import bcrypt from "bcryptjs";
 
 import User, { SELF_SIGNUP_ROLES } from "../models/User.js";
 import { ApiError } from "../utils/apiError.js";
@@ -43,6 +43,12 @@ function sanitizePhoneNumberInput(value) {
   return phoneNumber;
 }
 
+function ensurePhoneForNotifications(phoneNumber, notificationPreferences) {
+  if ((notificationPreferences.sms || notificationPreferences.whatsapp) && !phoneNumber) {
+    throw new ApiError(400, "Add a phone number before enabling SMS or WhatsApp alerts.");
+  }
+}
+
 export const register = asyncHandler(async (req, res) => {
   const name = req.body.name?.trim();
   const email = req.body.email?.trim()?.toLowerCase();
@@ -63,6 +69,14 @@ export const register = asyncHandler(async (req, res) => {
     throw new ApiError(409, "Email already in use.");
   }
 
+  const notificationPreferences = buildNotificationPreferences(req.body.notificationPreferences, {
+    sms: Boolean(phoneNumber),
+    whatsapp: Boolean(phoneNumber),
+    inApp: true,
+  });
+
+  ensurePhoneForNotifications(phoneNumber, notificationPreferences);
+
   const passwordHash = await bcrypt.hash(password, 10);
   const user = await User.create({
     name,
@@ -70,11 +84,7 @@ export const register = asyncHandler(async (req, res) => {
     password: passwordHash,
     role,
     phoneNumber,
-    notificationPreferences: buildNotificationPreferences(req.body.notificationPreferences, {
-      sms: Boolean(phoneNumber),
-      whatsapp: Boolean(phoneNumber),
-      inApp: true,
-    }),
+    notificationPreferences,
   });
 
   res.status(201).json({
@@ -125,6 +135,25 @@ export const updateCurrentUser = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User not found.");
   }
 
+  if (req.body.email !== undefined) {
+    const nextEmail = req.body.email?.trim()?.toLowerCase();
+
+    if (!nextEmail) {
+      throw new ApiError(400, "Email cannot be empty.");
+    }
+
+    const existingUser = await User.findOne({
+      email: nextEmail,
+      _id: { $ne: user._id },
+    });
+
+    if (existingUser) {
+      throw new ApiError(409, "Email already in use.");
+    }
+
+    user.email = nextEmail;
+  }
+
   if (req.body.name !== undefined) {
     const nextName = req.body.name?.trim();
 
@@ -145,6 +174,33 @@ export const updateCurrentUser = asyncHandler(async (req, res) => {
       : user.notificationPreferences || {};
 
     user.notificationPreferences = buildNotificationPreferences(req.body.notificationPreferences, currentPreferences);
+  }
+
+  const nextNotificationPreferences = user.notificationPreferences?.toObject
+    ? user.notificationPreferences.toObject()
+    : user.notificationPreferences || {};
+
+  ensurePhoneForNotifications(user.phoneNumber || "", nextNotificationPreferences);
+
+  const currentPassword = req.body.currentPassword;
+  const newPassword = req.body.newPassword;
+
+  if (currentPassword !== undefined || newPassword !== undefined) {
+    if (!currentPassword || !newPassword) {
+      throw new ApiError(400, "Current password and new password are both required to change your password.");
+    }
+
+    if (String(newPassword).length < 6) {
+      throw new ApiError(400, "New password must be at least 6 characters.");
+    }
+
+    const passwordMatches = await bcrypt.compare(String(currentPassword), user.password);
+
+    if (!passwordMatches) {
+      throw new ApiError(401, "Current password is incorrect.");
+    }
+
+    user.password = await bcrypt.hash(String(newPassword), 10);
   }
 
   await user.save();
