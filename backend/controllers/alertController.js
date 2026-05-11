@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
 
-import Alert from "../models/Alert.js";
+import Alert, { ALERT_CHANNELS } from "../models/Alert.js";
 import { ROLES } from "../models/User.js";
+import { dispatchAlertDeliveries } from "../services/alertDeliveryService.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { serializeAlert } from "../utils/serializers.js";
@@ -19,6 +20,10 @@ function sanitizeItems(items) {
 
 function sanitizeTargetRoles(targetRoles) {
   return sanitizeItems(targetRoles).filter((role) => ALERT_AUDIENCES.includes(role));
+}
+
+function sanitizeDeliveryChannels(deliveryChannels) {
+  return sanitizeItems(deliveryChannels).filter((channel) => ALERT_CHANNELS.includes(channel));
 }
 
 function sanitizeRiskLevel(riskLevel) {
@@ -50,6 +55,10 @@ function sanitizeAlertPayload(body, { requireCoreFields = false } = {}) {
 
   if (body.targetRoles !== undefined) {
     payload.targetRoles = sanitizeTargetRoles(body.targetRoles);
+  }
+
+  if (body.deliveryChannels !== undefined) {
+    payload.deliveryChannels = sanitizeDeliveryChannels(body.deliveryChannels);
   }
 
   if (body.actionItems !== undefined) {
@@ -108,14 +117,22 @@ export const createAlert = asyncHandler(async (req, res) => {
     category: payload.category || "Advisory",
     riskLevel: payload.riskLevel || "MEDIUM",
     targetRoles: payload.targetRoles?.length ? payload.targetRoles : ["ALL"],
+    deliveryChannels: payload.deliveryChannels?.length ? payload.deliveryChannels : ["IN_APP"],
     actionItems: payload.actionItems || [],
     createdBy: req.user.id,
   });
 
+  let responseMessage = "Alert published successfully.";
+
+  if (alert.deliveryChannels.some((channel) => channel !== "IN_APP")) {
+    const deliveryResult = await dispatchAlertDeliveries(alert);
+    responseMessage = `Alert published successfully. ${deliveryResult.message}`;
+  }
+
   const hydratedAlert = await findHydratedAlert(alert._id);
 
   res.status(201).json({
-    message: "Alert published successfully.",
+    message: responseMessage,
     alert: serializeAlert(hydratedAlert),
   });
 });
@@ -144,6 +161,11 @@ export const updateAlert = asyncHandler(async (req, res) => {
   alert.category = payload.category ?? alert.category;
   alert.riskLevel = payload.riskLevel ?? alert.riskLevel;
   alert.targetRoles = payload.targetRoles?.length ? payload.targetRoles : payload.targetRoles ? ["ALL"] : alert.targetRoles;
+  alert.deliveryChannels = payload.deliveryChannels?.length
+    ? payload.deliveryChannels
+    : payload.deliveryChannels
+      ? ["IN_APP"]
+      : alert.deliveryChannels;
   alert.actionItems = payload.actionItems ?? alert.actionItems;
   alert.isActive = payload.isActive ?? alert.isActive;
 
@@ -153,6 +175,29 @@ export const updateAlert = asyncHandler(async (req, res) => {
 
   res.json({
     message: alert.isActive ? "Alert updated successfully." : "Alert deactivated successfully.",
+    alert: serializeAlert(hydratedAlert),
+  });
+});
+
+export const deliverAlert = asyncHandler(async (req, res) => {
+  const { alertId } = req.params;
+  assertValidAlertId(alertId);
+
+  const alert = await Alert.findById(alertId);
+
+  if (!alert) {
+    throw new ApiError(404, "Alert not found.");
+  }
+
+  if (!alert.isActive) {
+    throw new ApiError(400, "Activate this alert before sending SMS or WhatsApp delivery.");
+  }
+
+  const deliveryResult = await dispatchAlertDeliveries(alert);
+  const hydratedAlert = await findHydratedAlert(alertId);
+
+  res.json({
+    message: deliveryResult.message,
     alert: serializeAlert(hydratedAlert),
   });
 });

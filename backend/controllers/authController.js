@@ -4,13 +4,51 @@ import User, { SELF_SIGNUP_ROLES } from "../models/User.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { signToken } from "../utils/jwt.js";
+import { normalizePhoneNumber } from "../utils/phoneNumber.js";
 import { serializeUser } from "../utils/serializers.js";
+
+function parseBoolean(value, fallback) {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (typeof value === "string") {
+    return value.toLowerCase() === "true";
+  }
+
+  return Boolean(value);
+}
+
+function buildNotificationPreferences(input = {}, fallback = {}) {
+  return {
+    sms: parseBoolean(input.sms, fallback.sms ?? true),
+    whatsapp: parseBoolean(input.whatsapp, fallback.whatsapp ?? false),
+    inApp: parseBoolean(input.inApp, fallback.inApp ?? true),
+  };
+}
+
+function sanitizePhoneNumberInput(value) {
+  const rawValue = String(value ?? "").trim();
+
+  if (!rawValue) {
+    return "";
+  }
+
+  const phoneNumber = normalizePhoneNumber(rawValue);
+
+  if (!phoneNumber) {
+    throw new ApiError(400, "Phone number must be in a valid international format such as +254712345678.");
+  }
+
+  return phoneNumber;
+}
 
 export const register = asyncHandler(async (req, res) => {
   const name = req.body.name?.trim();
   const email = req.body.email?.trim()?.toLowerCase();
   const password = req.body.password;
   const role = SELF_SIGNUP_ROLES.includes(req.body.role) ? req.body.role : "FARMER";
+  const phoneNumber = sanitizePhoneNumberInput(req.body.phoneNumber);
 
   if (!name || !email || !password) {
     throw new ApiError(400, "Name, email and password are required.");
@@ -31,6 +69,12 @@ export const register = asyncHandler(async (req, res) => {
     email,
     password: passwordHash,
     role,
+    phoneNumber,
+    notificationPreferences: buildNotificationPreferences(req.body.notificationPreferences, {
+      sms: Boolean(phoneNumber),
+      whatsapp: Boolean(phoneNumber),
+      inApp: true,
+    }),
   });
 
   res.status(201).json({
@@ -66,10 +110,47 @@ export const login = asyncHandler(async (req, res) => {
 });
 
 export const getCurrentUser = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user.id).select("_id name email role createdAt updatedAt");
+  const user = await User.findById(req.user.id).select("_id name email role phoneNumber notificationPreferences createdAt updatedAt");
   if (!user) {
     throw new ApiError(404, "User not found.");
   }
 
   res.json({ user: serializeUser(user) });
+});
+
+export const updateCurrentUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id);
+
+  if (!user) {
+    throw new ApiError(404, "User not found.");
+  }
+
+  if (req.body.name !== undefined) {
+    const nextName = req.body.name?.trim();
+
+    if (!nextName) {
+      throw new ApiError(400, "Name cannot be empty.");
+    }
+
+    user.name = nextName;
+  }
+
+  if (req.body.phoneNumber !== undefined) {
+    user.phoneNumber = sanitizePhoneNumberInput(req.body.phoneNumber);
+  }
+
+  if (req.body.notificationPreferences !== undefined) {
+    const currentPreferences = user.notificationPreferences?.toObject
+      ? user.notificationPreferences.toObject()
+      : user.notificationPreferences || {};
+
+    user.notificationPreferences = buildNotificationPreferences(req.body.notificationPreferences, currentPreferences);
+  }
+
+  await user.save();
+
+  res.json({
+    message: "Profile updated successfully.",
+    user: serializeUser(user),
+  });
 });

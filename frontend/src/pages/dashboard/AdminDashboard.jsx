@@ -6,9 +6,13 @@ import AnalyticsPanel from "../../components/dashboard/AnalyticsPanel";
 import DashboardShell from "../../components/dashboard/DashboardShell";
 import DashboardTabs from "../../components/dashboard/DashboardTabs";
 import EnvironmentalBriefPanel from "../../components/dashboard/EnvironmentalBriefPanel";
+import EnvironmentalFeedImportModal from "../../components/dashboard/EnvironmentalFeedImportModal";
+import EnvironmentalImportJobTable from "../../components/dashboard/EnvironmentalImportJobTable";
+import EnvironmentalProviderSyncPanel from "../../components/dashboard/EnvironmentalProviderSyncPanel";
 import EnvironmentalSignalComposerModal from "../../components/dashboard/EnvironmentalSignalComposerModal";
 import EnvironmentalSignalTable from "../../components/dashboard/EnvironmentalSignalTable";
 import KnowledgeBasePanel from "../../components/dashboard/KnowledgeBasePanel";
+import NotificationSettingsPanel from "../../components/dashboard/NotificationSettingsPanel";
 import QuickActionsPanel from "../../components/dashboard/QuickActionsPanel";
 import ReportList from "../../components/dashboard/ReportList";
 import RiskMapPanel from "../../components/dashboard/RiskMapPanel";
@@ -16,6 +20,8 @@ import SummaryCard from "../../components/dashboard/SummaryCard";
 import { apiDelete, apiPatch, apiPost, extractApiErrorMessage } from "../../lib/api";
 import { useAdminAlertsData } from "../../lib/useAdminAlertsData";
 import { useDashboardData } from "../../lib/useDashboardData";
+import { useEnvironmentalImportJobsData } from "../../lib/useEnvironmentalImportJobsData";
+import { useEnvironmentalProvidersData } from "../../lib/useEnvironmentalProvidersData";
 import { useEnvironmentalSignalsData } from "../../lib/useEnvironmentalSignalsData";
 
 const INITIAL_ALERT = {
@@ -26,6 +32,7 @@ const INITIAL_ALERT = {
   riskLevel: "HIGH",
   targetRoles: "ALL",
   actionItems: "",
+  deliveryChannels: ["IN_APP"],
 };
 
 const INITIAL_SIGNAL = {
@@ -41,6 +48,13 @@ const INITIAL_SIGNAL = {
   capturedAt: "",
 };
 
+const INITIAL_IMPORT = {
+  sourceType: "WEATHER_FEED",
+  importFormat: "CSV",
+  providerName: "",
+  rawData: "",
+};
+
 function buildAlertForm(alert) {
   return {
     title: alert.title || "",
@@ -50,6 +64,7 @@ function buildAlertForm(alert) {
     riskLevel: alert.riskLevel || "HIGH",
     targetRoles: alert.targetRoles?.[0] || "ALL",
     actionItems: (alert.actionItems || []).join(", "),
+    deliveryChannels: alert.deliveryChannels?.length ? [...alert.deliveryChannels] : ["IN_APP"],
   };
 }
 
@@ -67,17 +82,34 @@ export default function AdminDashboard() {
     error: signalsError,
     reload: reloadSignals,
   } = useEnvironmentalSignalsData();
+  const {
+    jobs: importJobs,
+    isLoading: areImportJobsLoading,
+    error: importJobsError,
+    reload: reloadImportJobs,
+  } = useEnvironmentalImportJobsData();
+  const {
+    providers,
+    isLoading: areProvidersLoading,
+    error: providersError,
+    reload: reloadProviders,
+  } = useEnvironmentalProvidersData();
   const [form, setForm] = useState(INITIAL_ALERT);
   const [signalForm, setSignalForm] = useState(INITIAL_SIGNAL);
+  const [importForm, setImportForm] = useState(INITIAL_IMPORT);
   const [composerMessage, setComposerMessage] = useState("");
   const [alertCenterMessage, setAlertCenterMessage] = useState("");
   const [signalComposerMessage, setSignalComposerMessage] = useState("");
+  const [importMessage, setImportMessage] = useState("");
   const [environmentalMessage, setEnvironmentalMessage] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
   const [isSavingSignal, setIsSavingSignal] = useState(false);
   const [isTrainingModel, setIsTrainingModel] = useState(false);
+  const [isImportingFeed, setIsImportingFeed] = useState(false);
+  const [syncingProviderKey, setSyncingProviderKey] = useState("");
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [isSignalComposerOpen, setIsSignalComposerOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingAlert, setEditingAlert] = useState(null);
   const [editingSignal, setEditingSignal] = useState(null);
   const [processingAlertId, setProcessingAlertId] = useState("");
@@ -95,6 +127,30 @@ export default function AdminDashboard() {
     setSignalForm((current) => ({ ...current, [name]: value }));
   };
 
+  const onImportChange = (event) => {
+    const { name, value } = event.target;
+    setImportForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const toggleDeliveryChannel = (channel) => {
+    setForm((current) => {
+      const channels = new Set(current.deliveryChannels || []);
+
+      if (channels.has(channel)) {
+        channels.delete(channel);
+      } else {
+        channels.add(channel);
+      }
+
+      const nextChannels = Array.from(channels);
+
+      return {
+        ...current,
+        deliveryChannels: nextChannels.length ? nextChannels : ["IN_APP"],
+      };
+    });
+  };
+
   const openComposer = () => {
     setEditingAlert(null);
     setForm(INITIAL_ALERT);
@@ -109,6 +165,13 @@ export default function AdminDashboard() {
     setSignalComposerMessage("");
     setEnvironmentalMessage("");
     setIsSignalComposerOpen(true);
+  };
+
+  const openImportModal = () => {
+    setImportForm(INITIAL_IMPORT);
+    setImportMessage("");
+    setEnvironmentalMessage("");
+    setIsImportModalOpen(true);
   };
 
   const openEditComposer = (alert) => {
@@ -160,6 +223,16 @@ export default function AdminDashboard() {
     setSignalComposerMessage("");
   };
 
+  const closeImportModal = () => {
+    if (isImportingFeed) {
+      return;
+    }
+
+    setIsImportModalOpen(false);
+    setImportForm(INITIAL_IMPORT);
+    setImportMessage("");
+  };
+
   const publishAlert = async (event) => {
     event.preventDefault();
     setIsPublishing(true);
@@ -169,18 +242,21 @@ export default function AdminDashboard() {
       const payload = {
         ...form,
         targetRoles: [form.targetRoles],
+        deliveryChannels: form.deliveryChannels,
         actionItems: form.actionItems
           .split(",")
           .map((item) => item.trim())
           .filter(Boolean),
       };
 
+      let response;
+
       if (editingAlert) {
-        await apiPatch(`/api/alerts/${editingAlert.id}`, payload, { auth: true });
-        setAlertCenterMessage("Alert updated successfully.");
+        response = await apiPatch(`/api/alerts/${editingAlert.id}`, payload, { auth: true });
+        setAlertCenterMessage(response?.message || "Alert updated successfully.");
       } else {
-        await apiPost("/api/alerts", payload, { auth: true });
-        setAlertCenterMessage("Alert published successfully.");
+        response = await apiPost("/api/alerts", payload, { auth: true });
+        setAlertCenterMessage(response?.message || "Alert published successfully.");
       }
 
       setForm(INITIAL_ALERT);
@@ -191,6 +267,23 @@ export default function AdminDashboard() {
       setComposerMessage(extractApiErrorMessage(publishError, editingAlert ? "Unable to update alert." : "Unable to publish alert."));
     } finally {
       setIsPublishing(false);
+    }
+  };
+
+  const deliverAlert = async (alert) => {
+    setProcessingAlertId(alert.id);
+    setProcessingAction("deliver");
+    setAlertCenterMessage("");
+
+    try {
+      const response = await apiPost(`/api/alerts/${alert.id}/deliver`, {}, { auth: true });
+      setAlertCenterMessage(response?.message || "External delivery queued.");
+      await Promise.all([reload(), reloadAlerts()]);
+    } catch (deliverError) {
+      setAlertCenterMessage(extractApiErrorMessage(deliverError, "Unable to send alert delivery right now."));
+    } finally {
+      setProcessingAlertId("");
+      setProcessingAction("");
     }
   };
 
@@ -314,6 +407,43 @@ export default function AdminDashboard() {
     }
   };
 
+  const importEnvironmentalFeed = async (event) => {
+    event.preventDefault();
+    setIsImportingFeed(true);
+    setImportMessage("");
+
+    try {
+      const response = await apiPost("/api/environmental-signals/import", importForm, { auth: true });
+
+      setEnvironmentalMessage(response?.message || "Environmental feed imported successfully.");
+      setImportForm(INITIAL_IMPORT);
+      setIsImportModalOpen(false);
+      await Promise.all([reloadSignals(), reloadImportJobs()]);
+      setEnvironmentalBriefVersion((current) => current + 1);
+    } catch (loadError) {
+      setImportMessage(extractApiErrorMessage(loadError, "Unable to import the environmental feed."));
+    } finally {
+      setIsImportingFeed(false);
+    }
+  };
+
+  const syncEnvironmentalProvider = async (provider) => {
+    setSyncingProviderKey(provider.key);
+    setEnvironmentalMessage("");
+
+    try {
+      const response = await apiPost(`/api/environmental-signals/providers/${provider.key}/sync`, {}, { auth: true });
+
+      setEnvironmentalMessage(response?.message || `${provider.providerName} sync completed.`);
+      await Promise.all([reloadSignals(), reloadImportJobs(), reloadProviders()]);
+      setEnvironmentalBriefVersion((current) => current + 1);
+    } catch (syncError) {
+      setEnvironmentalMessage(extractApiErrorMessage(syncError, `Unable to sync ${provider.providerName}.`));
+    } finally {
+      setSyncingProviderKey("");
+    }
+  };
+
   const retrainEnvironmentalModel = async () => {
     setIsTrainingModel(true);
     setEnvironmentalMessage("");
@@ -331,6 +461,59 @@ export default function AdminDashboard() {
     }
   };
 
+  const environmentalTabs = [
+    {
+      id: "brief",
+      label: "Risk Brief",
+      content: (
+        <EnvironmentalBriefPanel
+          title="ML environmental risk brief"
+          description="County-level recommendations generated by the Python scoring layer from environmental signals and recent FarmGuard reports."
+          refreshToken={environmentalBriefVersion}
+        />
+      ),
+    },
+    {
+      id: "providers",
+      label: "Provider Sync",
+      content: (
+        <>
+          <EnvironmentalProviderSyncPanel
+            providers={providers}
+            onSync={syncEnvironmentalProvider}
+            syncingProviderKey={syncingProviderKey}
+          />
+          {areProvidersLoading ? <div className="dashboard-banner">Loading live provider status...</div> : null}
+        </>
+      ),
+    },
+    {
+      id: "signals",
+      label: "Signals",
+      content: (
+        <>
+          <EnvironmentalSignalTable
+            signals={signals}
+            onEdit={openEditSignalComposer}
+            onDelete={deleteEnvironmentalSignal}
+            processingSignalId={processingSignalId}
+          />
+          {areSignalsLoading ? <div className="dashboard-banner">Loading environmental signals...</div> : null}
+        </>
+      ),
+    },
+    {
+      id: "imports",
+      label: "Import History",
+      content: (
+        <>
+          <EnvironmentalImportJobTable jobs={importJobs} />
+          {areImportJobsLoading ? <div className="dashboard-banner">Loading environmental import history...</div> : null}
+        </>
+      ),
+    },
+  ];
+
   const tabs = [
     {
       id: "overview",
@@ -343,6 +526,10 @@ export default function AdminDashboard() {
             ))}
           </section>
           <QuickActionsPanel quickActions={data.quickActions} />
+          <NotificationSettingsPanel
+            title="Admin notification settings"
+            description="Save the phone number and delivery channels you want FarmGuard to use when urgent command alerts need to reach you."
+          />
         </>
       ),
     },
@@ -367,6 +554,9 @@ export default function AdminDashboard() {
                 <button type="button" className="btn btn-outline" onClick={retrainEnvironmentalModel} disabled={isTrainingModel}>
                   {isTrainingModel ? "Training..." : "Retrain model"}
                 </button>
+                <button type="button" className="btn btn-outline" onClick={openImportModal}>
+                  Import feed
+                </button>
                 <button type="button" className="btn btn-primary" onClick={openSignalComposer}>
                   Log signal
                 </button>
@@ -377,22 +567,22 @@ export default function AdminDashboard() {
             </p>
             {environmentalMessage ? <div className="dashboard-banner">{environmentalMessage}</div> : null}
             {signalsError ? <div className="dashboard-banner dashboard-banner-error">{signalsError}</div> : null}
+            {importJobsError ? <div className="dashboard-banner dashboard-banner-error">{importJobsError}</div> : null}
+            {providersError ? <div className="dashboard-banner dashboard-banner-error">{providersError}</div> : null}
           </section>
 
-          <EnvironmentalBriefPanel
-            title="ML environmental risk brief"
-            description="County-level recommendations generated by the Python scoring layer from environmental signals and recent FarmGuard reports."
-            refreshToken={environmentalBriefVersion}
-          />
+          <section className="dashboard-panel dashboard-panel-wide dashboard-subtabs-panel">
+            <div className="panel-head">
+              <div>
+                <h2>Environmental workspace</h2>
+                <p>Switch between the risk brief, provider sync controls, raw county signals, and import history without growing the page.</p>
+              </div>
+            </div>
 
-          <EnvironmentalSignalTable
-            signals={signals}
-            onEdit={openEditSignalComposer}
-            onDelete={deleteEnvironmentalSignal}
-            processingSignalId={processingSignalId}
-          />
-
-          {areSignalsLoading ? <div className="dashboard-banner">Loading environmental signals...</div> : null}
+            <div className="dashboard-subtabs">
+              <DashboardTabs tabs={environmentalTabs} defaultTab="brief" storageKey="fg-admin-environmental-tab" />
+            </div>
+          </section>
 
           <EnvironmentalSignalComposerModal
             open={isSignalComposerOpen}
@@ -403,6 +593,16 @@ export default function AdminDashboard() {
             onChange={onSignalChange}
             onClose={closeSignalComposer}
             onSubmit={saveEnvironmentalSignal}
+          />
+
+          <EnvironmentalFeedImportModal
+            open={isImportModalOpen}
+            form={importForm}
+            message={importMessage}
+            isImporting={isImportingFeed}
+            onChange={onImportChange}
+            onClose={closeImportModal}
+            onSubmit={importEnvironmentalFeed}
           />
         </>
       ),
@@ -416,14 +616,14 @@ export default function AdminDashboard() {
             <div className="panel-head">
               <div>
                 <h2>Manage alerts</h2>
-                <p>Publish targeted response instructions from a focused popout, then review all active advisories in one table.</p>
+                <p>Publish targeted response instructions, choose external delivery channels, and review what actually queued.</p>
               </div>
               <button type="button" className="btn btn-primary" onClick={openComposer}>
                 Publish alert
               </button>
             </div>
             <p className="dashboard-launch-note">
-              Use the alert composer for new advisories, then scan and manage published alerts below by risk, status, audience, and location.
+              Use the alert composer for new advisories, then scan and manage published alerts below by risk, audience, delivery channels, and queue results.
             </p>
             {alertCenterMessage ? <div className="dashboard-banner">{alertCenterMessage}</div> : null}
             {alertsError ? <div className="dashboard-banner dashboard-banner-error">{alertsError}</div> : null}
@@ -434,6 +634,7 @@ export default function AdminDashboard() {
             title="Published alerts"
             description="Manage active and inactive advisories across the platform."
             onEdit={openEditComposer}
+            onDeliver={deliverAlert}
             onToggleActive={toggleAlertActive}
             onDelete={deleteAlert}
             processingAlertId={processingAlertId}
@@ -447,6 +648,7 @@ export default function AdminDashboard() {
             message={composerMessage}
             isPublishing={isPublishing}
             onChange={onChange}
+            onChannelToggle={toggleDeliveryChannel}
             onClose={closeComposer}
             onSubmit={publishAlert}
           />

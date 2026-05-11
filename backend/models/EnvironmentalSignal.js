@@ -21,6 +21,12 @@ const environmentalSignalSchema = new mongoose.Schema(
       default: "MANUAL_ENTRY",
       index: true,
     },
+    providerKey: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
     rainfallMm: {
       type: Number,
       default: 0,
@@ -60,7 +66,6 @@ const environmentalSignalSchema = new mongoose.Schema(
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
     },
   },
   { timestamps: true },

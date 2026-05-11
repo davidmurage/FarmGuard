@@ -1,65 +1,13 @@
 import mongoose from "mongoose";
 
+import EnvironmentalImportJob from "../models/EnvironmentalImportJob.js";
 import EnvironmentalSignal, { ENVIRONMENTAL_SIGNAL_SOURCES } from "../models/EnvironmentalSignal.js";
+import { importEnvironmentalFeed as importEnvironmentalFeedData } from "../services/environmentalImportService.js";
+import { listEnvironmentalProviderStatuses, triggerEnvironmentalProviderSync } from "../services/environmentalProviderService.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { serializeEnvironmentalSignal } from "../utils/serializers.js";
-
-function sanitizeNumber(value, fallback) {
-  const parsedValue = Number(value);
-  return Number.isFinite(parsedValue) ? parsedValue : fallback;
-}
-
-function sanitizeSignalPayload(body = {}, { requireCoreFields = false } = {}) {
-  const payload = {};
-
-  if (body.county !== undefined) {
-    payload.county = body.county?.trim();
-  }
-
-  if (body.locationName !== undefined) {
-    payload.locationName = body.locationName?.trim() || "Regional";
-  }
-
-  if (body.sourceType !== undefined) {
-    payload.sourceType = ENVIRONMENTAL_SIGNAL_SOURCES.includes(body.sourceType) ? body.sourceType : "MANUAL_ENTRY";
-  }
-
-  if (body.rainfallMm !== undefined) {
-    payload.rainfallMm = Math.max(0, sanitizeNumber(body.rainfallMm, 0));
-  }
-
-  if (body.humidityPct !== undefined) {
-    payload.humidityPct = Math.min(Math.max(sanitizeNumber(body.humidityPct, 0), 0), 100);
-  }
-
-  if (body.temperatureC !== undefined) {
-    payload.temperatureC = sanitizeNumber(body.temperatureC, 0);
-  }
-
-  if (body.vegetationIndex !== undefined) {
-    payload.vegetationIndex = Math.min(Math.max(sanitizeNumber(body.vegetationIndex, 50), 0), 100);
-  }
-
-  if (body.soilMoisturePct !== undefined) {
-    payload.soilMoisturePct = Math.min(Math.max(sanitizeNumber(body.soilMoisturePct, 50), 0), 100);
-  }
-
-  if (body.notes !== undefined) {
-    payload.notes = body.notes?.trim() || "";
-  }
-
-  if (body.capturedAt !== undefined) {
-    const parsedDate = new Date(body.capturedAt);
-    payload.capturedAt = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
-  }
-
-  if (requireCoreFields && !payload.county) {
-    throw new ApiError(400, "County is required.");
-  }
-
-  return payload;
-}
+import { sanitizeEnvironmentalSignalPayload } from "../utils/environmentalSignalPayload.js";
+import { serializeEnvironmentalImportJob, serializeEnvironmentalSignal } from "../utils/serializers.js";
 
 function assertValidSignalId(signalId) {
   if (!mongoose.Types.ObjectId.isValid(signalId)) {
@@ -91,12 +39,13 @@ export const listEnvironmentalSignals = asyncHandler(async (req, res) => {
 });
 
 export const createEnvironmentalSignal = asyncHandler(async (req, res) => {
-  const payload = sanitizeSignalPayload(req.body, { requireCoreFields: true });
+  const payload = sanitizeEnvironmentalSignalPayload(req.body, { requireCoreFields: true });
 
   const signal = await EnvironmentalSignal.create({
     county: payload.county,
     locationName: payload.locationName || "Regional",
     sourceType: payload.sourceType || "MANUAL_ENTRY",
+    providerKey: payload.providerKey || "",
     rainfallMm: payload.rainfallMm ?? 0,
     humidityPct: payload.humidityPct ?? 0,
     temperatureC: payload.temperatureC ?? 0,
@@ -125,7 +74,7 @@ export const updateEnvironmentalSignal = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Environmental signal not found.");
   }
 
-  const payload = sanitizeSignalPayload(req.body);
+  const payload = sanitizeEnvironmentalSignalPayload(req.body);
   const nextCounty = payload.county ?? signal.county;
 
   if (!nextCounty) {
@@ -135,6 +84,7 @@ export const updateEnvironmentalSignal = asyncHandler(async (req, res) => {
   signal.county = nextCounty;
   signal.locationName = payload.locationName ?? signal.locationName;
   signal.sourceType = payload.sourceType ?? signal.sourceType;
+  signal.providerKey = payload.providerKey ?? signal.providerKey;
   signal.rainfallMm = payload.rainfallMm ?? signal.rainfallMm;
   signal.humidityPct = payload.humidityPct ?? signal.humidityPct;
   signal.temperatureC = payload.temperatureC ?? signal.temperatureC;
@@ -168,4 +118,55 @@ export const deleteEnvironmentalSignal = asyncHandler(async (req, res) => {
   res.json({
     message: "Environmental signal deleted successfully.",
   });
+});
+
+export const importEnvironmentalFeed = asyncHandler(async (req, res) => {
+  const sourceType = ENVIRONMENTAL_SIGNAL_SOURCES.includes(req.body.sourceType) && req.body.sourceType !== "MANUAL_ENTRY"
+    ? req.body.sourceType
+    : null;
+
+  if (!sourceType) {
+    throw new ApiError(400, "Source type must be WEATHER_FEED, SATELLITE_FEED, or GOV_UPLOAD for bulk imports.");
+  }
+
+  const result = await importEnvironmentalFeedData({
+    sourceType,
+    importFormat: req.body.importFormat,
+    providerName: req.body.providerName || "",
+    rawData: req.body.rawData || "",
+    createdBy: req.user.id,
+  });
+
+  res.status(201).json(result);
+});
+
+export const listEnvironmentalImportJobs = asyncHandler(async (_req, res) => {
+  const jobs = await EnvironmentalImportJob.find({})
+    .sort({ createdAt: -1 })
+    .limit(20)
+    .populate("createdBy", "name role");
+
+  res.json({
+    jobs: jobs.map(serializeEnvironmentalImportJob),
+    total: jobs.length,
+  });
+});
+
+export const listEnvironmentalProviders = asyncHandler(async (_req, res) => {
+  const providers = await listEnvironmentalProviderStatuses();
+
+  res.json({
+    providers,
+    total: providers.length,
+  });
+});
+
+export const syncEnvironmentalProvider = asyncHandler(async (req, res) => {
+  const providerKey = String(req.params.providerKey || "").trim().toUpperCase();
+  const result = await triggerEnvironmentalProviderSync(providerKey, {
+    triggerMode: "MANUAL",
+    createdBy: req.user.id,
+  });
+
+  res.status(201).json(result);
 });

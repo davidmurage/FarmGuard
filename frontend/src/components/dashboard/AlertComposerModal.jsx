@@ -7,6 +7,7 @@ export default function AlertComposerModal({
   message,
   isPublishing,
   onChange,
+  onChannelToggle,
   onClose,
   onSubmit,
 }) {
@@ -38,6 +39,7 @@ export default function AlertComposerModal({
   const heading = mode === "edit" ? "Edit alert" : "Publish an alert";
   const submitLabel = mode === "edit" ? "Save changes" : "Publish alert";
   const busyLabel = mode === "edit" ? "Saving..." : "Publishing...";
+  const selectedChannels = form.deliveryChannels || ["IN_APP"];
 
   return (
     <div
@@ -114,6 +116,39 @@ export default function AlertComposerModal({
               <input className="input" name="actionItems" value={form.actionItems} onChange={onChange} placeholder="isolate livestock, contact field vet, sample affected soil" />
             </label>
           </div>
+
+          <div>
+            <span className="settings-group-label">Delivery channels</span>
+            <div className="checkbox-stack">
+              <label className="checkbox-option">
+                <input type="checkbox" checked={selectedChannels.includes("IN_APP")} onChange={() => onChannelToggle?.("IN_APP")} />
+                <div>
+                  <strong>In-app</strong>
+                  <span>Show this alert inside the FarmGuard dashboards.</span>
+                </div>
+              </label>
+
+              <label className="checkbox-option">
+                <input type="checkbox" checked={selectedChannels.includes("SMS")} onChange={() => onChannelToggle?.("SMS")} />
+                <div>
+                  <strong>SMS</strong>
+                  <span>Queue text delivery for opted-in users with saved phone numbers.</span>
+                </div>
+              </label>
+
+              <label className="checkbox-option">
+                <input type="checkbox" checked={selectedChannels.includes("WHATSAPP")} onChange={() => onChannelToggle?.("WHATSAPP")} />
+                <div>
+                  <strong>WhatsApp</strong>
+                  <span>Queue WhatsApp delivery for opted-in users who use the same number.</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <p className="settings-note">
+            SMS and WhatsApp delivery follow each user&apos;s saved phone number and channel preferences. If external delivery is unavailable, the alert still remains visible in-app.
+          </p>
 
           <div className="form-actions">
             <button type="button" className="btn btn-outline" onClick={onClose} disabled={isPublishing}>

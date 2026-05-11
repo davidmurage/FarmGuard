@@ -1,7 +1,7 @@
 {
-  "modelVersion": "fg-env-trained-20260326071251",
+  "modelVersion": "fg-env-trained-20260505111138",
   "trained": true,
-  "trainedAt": "2026-03-26T07:12:51.634429Z",
+  "trainedAt": "2026-05-05T11:11:38.445181Z",
   "trainingSamples": 25,
   "featureNames": [
     "rainfall_pressure",

@@ -5,6 +5,7 @@ import DashboardShell from "../../components/dashboard/DashboardShell";
 import DashboardTabs from "../../components/dashboard/DashboardTabs";
 import EnvironmentalBriefPanel from "../../components/dashboard/EnvironmentalBriefPanel";
 import KnowledgeBasePanel from "../../components/dashboard/KnowledgeBasePanel";
+import NotificationSettingsPanel from "../../components/dashboard/NotificationSettingsPanel";
 import QuickActionsPanel from "../../components/dashboard/QuickActionsPanel";
 import ReportComposerModal from "../../components/dashboard/ReportComposerModal";
 import ReportTable from "../../components/dashboard/ReportTable";
@@ -224,6 +225,10 @@ export default function FarmerDashboard() {
             ))}
           </section>
           <QuickActionsPanel quickActions={data.quickActions} />
+          <NotificationSettingsPanel
+            title="Farmer notification settings"
+            description="Save the phone number and channels you want FarmGuard to use when local disease or pest alerts need to reach you quickly."
+          />
         </>
       ),
     },
