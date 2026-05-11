@@ -1,4 +1,4 @@
-import AlertList from "../../components/dashboard/AlertList";
+﻿import AlertList from "../../components/dashboard/AlertList";
 import AnalyticsPanel from "../../components/dashboard/AnalyticsPanel";
 import DashboardShell from "../../components/dashboard/DashboardShell";
 import DashboardTabs from "../../components/dashboard/DashboardTabs";
@@ -29,11 +29,17 @@ export default function PartnerDashboard() {
             ))}
           </section>
           <QuickActionsPanel quickActions={data.quickActions} />
-          <NotificationSettingsPanel
-            title="Partner notification settings"
-            description="Save the number and channels FarmGuard can use when partner-facing advisories need to reach your planning team quickly."
-          />
         </>
+      ),
+    },
+    {
+      id: "profile",
+      label: "Profile",
+      content: (
+        <NotificationSettingsPanel
+          title="Partner profile"
+          description="Update your organization contact details, delivery channels, and password for planning coordination."
+        />
       ),
     },
     {
@@ -128,3 +134,4 @@ export default function PartnerDashboard() {
     </DashboardShell>
   );
 }
+
