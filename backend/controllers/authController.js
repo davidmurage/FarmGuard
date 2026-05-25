@@ -4,6 +4,7 @@ import User, { SELF_SIGNUP_ROLES } from "../models/User.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { signToken } from "../utils/jwt.js";
+import { buildStoredLocation, hasCounty } from "../utils/locationTargeting.js";
 import { normalizePhoneNumber } from "../utils/phoneNumber.js";
 import { serializeUser } from "../utils/serializers.js";
 
@@ -49,12 +50,22 @@ function ensurePhoneForNotifications(phoneNumber, notificationPreferences) {
   }
 }
 
+function ensureCountyForLocalWarnings(role, location) {
+  if (["FARMER", "VET"].includes(role) && !hasCounty(location)) {
+    throw new ApiError(400, "County is required so FarmGuard can send you local outbreak warnings.");
+  }
+}
+
 export const register = asyncHandler(async (req, res) => {
   const name = req.body.name?.trim();
   const email = req.body.email?.trim()?.toLowerCase();
   const password = req.body.password;
   const role = SELF_SIGNUP_ROLES.includes(req.body.role) ? req.body.role : "FARMER";
   const phoneNumber = sanitizePhoneNumberInput(req.body.phoneNumber);
+  const location = buildStoredLocation({
+    locationName: req.body.locationName,
+    county: req.body.county,
+  });
 
   if (!name || !email || !password) {
     throw new ApiError(400, "Name, email and password are required.");
@@ -68,6 +79,8 @@ export const register = asyncHandler(async (req, res) => {
   if (existingUser) {
     throw new ApiError(409, "Email already in use.");
   }
+
+  ensureCountyForLocalWarnings(role, location);
 
   const notificationPreferences = buildNotificationPreferences(req.body.notificationPreferences, {
     sms: Boolean(phoneNumber),
@@ -84,6 +97,7 @@ export const register = asyncHandler(async (req, res) => {
     password: passwordHash,
     role,
     phoneNumber,
+    location,
     notificationPreferences,
   });
 
@@ -120,7 +134,7 @@ export const login = asyncHandler(async (req, res) => {
 });
 
 export const getCurrentUser = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user.id).select("_id name email role phoneNumber notificationPreferences createdAt updatedAt");
+  const user = await User.findById(req.user.id).select("_id name email role phoneNumber location notificationPreferences createdAt updatedAt");
   if (!user) {
     throw new ApiError(404, "User not found.");
   }
@@ -166,6 +180,20 @@ export const updateCurrentUser = asyncHandler(async (req, res) => {
 
   if (req.body.phoneNumber !== undefined) {
     user.phoneNumber = sanitizePhoneNumberInput(req.body.phoneNumber);
+  }
+
+  if (req.body.locationName !== undefined || req.body.county !== undefined) {
+    const currentLocation = user.location?.toObject ? user.location.toObject() : user.location || {};
+    const nextLocation = buildStoredLocation(
+      {
+        locationName: req.body.locationName,
+        county: req.body.county,
+      },
+      currentLocation,
+    );
+
+    ensureCountyForLocalWarnings(user.role, nextLocation);
+    user.location = nextLocation;
   }
 
   if (req.body.notificationPreferences !== undefined) {

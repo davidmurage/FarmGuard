@@ -1,4 +1,4 @@
-export function serializeUser(user) {
+﻿export function serializeUser(user) {
   const source = user.toObject ? user.toObject() : user;
 
   return {
@@ -7,6 +7,10 @@ export function serializeUser(user) {
     email: source.email,
     role: source.role,
     phoneNumber: source.phoneNumber || "",
+    location: {
+      name: source.location?.name || "",
+      county: source.location?.county || "",
+    },
     notificationPreferences: {
       sms: source.notificationPreferences?.sms ?? true,
       whatsapp: source.notificationPreferences?.whatsapp ?? false,
@@ -83,6 +87,7 @@ export function serializeAlert(alert) {
     riskLevel: source.riskLevel,
     locationName: source.locationName,
     targetRoles: source.targetRoles || [],
+    targetCounties: source.targetCounties || [],
     deliveryChannels: source.deliveryChannels || ["IN_APP"],
     deliveryStatus: source.deliveryStatus || "NOT_REQUESTED",
     deliverySummary: {
@@ -94,6 +99,19 @@ export function serializeAlert(alert) {
     },
     actionItems: source.actionItems || [],
     isActive: Boolean(source.isActive),
+    sourceKind: source.sourceKind || "MANUAL",
+    sourceKey: source.sourceKey || "",
+    signalSummary: {
+      county: source.signalSummary?.county || "",
+      reportType: source.signalSummary?.reportType || "",
+      reportCount: source.signalSummary?.reportCount || 0,
+      highRiskCount: source.signalSummary?.highRiskCount || 0,
+      verifiedCount: source.signalSummary?.verifiedCount || 0,
+      dominantSignals: source.signalSummary?.dominantSignals || [],
+      combinedRiskScore: source.signalSummary?.combinedRiskScore || 0,
+      detectionWindowDays: source.signalSummary?.detectionWindowDays || 0,
+      latestReportAt: source.signalSummary?.latestReportAt || null,
+    },
     createdBy: source.createdBy?.name
       ? {
           id: String(source.createdBy._id),
