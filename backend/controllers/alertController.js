@@ -1,8 +1,10 @@
-import mongoose from "mongoose";
+﻿import mongoose from "mongoose";
 
 import Alert, { ALERT_CHANNELS } from "../models/Alert.js";
 import { ROLES } from "../models/User.js";
 import { dispatchAlertDeliveries } from "../services/alertDeliveryService.js";
+import { refreshAutoReportWarningsSafely } from "../services/outbreakWarningService.js";
+import { isAlertVisibleToUser } from "../utils/alertAudience.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { serializeAlert } from "../utils/serializers.js";
@@ -87,23 +89,29 @@ function assertValidAlertId(alertId) {
 }
 
 export const listAlerts = asyncHandler(async (req, res) => {
+  await refreshAutoReportWarningsSafely();
+
   const isAdminManageView = req.user.role === "ADMIN" && req.query.scope === "manage";
   const limit = Math.min(Number(req.query.limit) || (isAdminManageView ? 50 : 20), 100);
-  const filters = isAdminManageView
+  const baseFilters = isAdminManageView
     ? {}
     : {
         isActive: true,
         targetRoles: { $in: [req.user.role, "ALL"] },
       };
 
-  const alerts = await Alert.find(filters)
-    .sort({ createdAt: -1 })
-    .limit(limit)
+  const alerts = await Alert.find(baseFilters)
+    .sort({ updatedAt: -1, createdAt: -1 })
+    .limit(isAdminManageView ? limit : 100)
     .populate("createdBy", "name role");
 
+  const visibleAlerts = isAdminManageView
+    ? alerts
+    : alerts.filter((alert) => isAlertVisibleToUser(alert, req.user));
+
   res.json({
-    alerts: alerts.map(serializeAlert),
-    total: alerts.length,
+    alerts: visibleAlerts.slice(0, limit).map(serializeAlert),
+    total: visibleAlerts.length,
   });
 });
 

@@ -1,6 +1,7 @@
-import { env } from "../config/env.js";
+﻿import { env } from "../config/env.js";
 import AlertDelivery from "../models/AlertDelivery.js";
 import User from "../models/User.js";
+import { buildRecipientQueryForAlert } from "../utils/alertAudience.js";
 import { normalizePhoneNumber } from "../utils/phoneNumber.js";
 
 const EXTERNAL_ALERT_CHANNELS = ["SMS", "WHATSAPP"];
@@ -22,16 +23,6 @@ function buildAlertBody(alert) {
   ].filter(Boolean);
 
   return truncateText(segments.join(" "), 1200);
-}
-
-function getRecipientQuery(targetRoles = []) {
-  if (!Array.isArray(targetRoles) || !targetRoles.length || targetRoles.includes("ALL")) {
-    return {};
-  }
-
-  return {
-    role: { $in: targetRoles },
-  };
 }
 
 function formatChannelLabel(channel) {
@@ -346,7 +337,7 @@ export async function dispatchAlertDeliveries(alert) {
     };
   }
 
-  const audienceUsers = await User.find(getRecipientQuery(alert.targetRoles)).select("_id role name phoneNumber notificationPreferences");
+  const audienceUsers = await User.find(buildRecipientQueryForAlert(alert)).select("_id role name phoneNumber location notificationPreferences");
   summary.audienceSize = audienceUsers.length;
   summary.lastAttemptedAt = new Date();
 

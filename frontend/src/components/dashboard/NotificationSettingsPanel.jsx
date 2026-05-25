@@ -8,6 +8,8 @@ function buildForm(user) {
     name: user?.name || "",
     email: user?.email || "",
     phoneNumber: user?.phoneNumber || "",
+    locationName: user?.location?.name || "",
+    county: user?.location?.county || "",
     notificationPreferences: {
       sms: Boolean(user?.notificationPreferences?.sms),
       whatsapp: Boolean(user?.notificationPreferences?.whatsapp),
@@ -54,6 +56,7 @@ export default function NotificationSettingsPanel({
     (form.notificationPreferences.sms || form.notificationPreferences.whatsapp) &&
     !form.phoneNumber.trim();
 
+  const requiresCounty = ["FARMER", "VET"].includes(session.user.role);
   const passwordChangeRequested =
     form.currentPassword || form.newPassword || form.confirmNewPassword;
 
@@ -84,10 +87,17 @@ export default function NotificationSettingsPanel({
 
     const nextName = form.name.trim();
     const nextEmail = form.email.trim().toLowerCase();
+    const nextCounty = form.county.trim();
 
     if (!nextName || !nextEmail) {
       setBusy(false);
       setMessage("Name and email are required.");
+      return;
+    }
+
+    if (requiresCounty && !nextCounty) {
+      setBusy(false);
+      setMessage("County is required so FarmGuard can send you local outbreak warnings.");
       return;
     }
 
@@ -124,6 +134,8 @@ export default function NotificationSettingsPanel({
           name: nextName,
           email: nextEmail,
           phoneNumber: form.phoneNumber,
+          locationName: form.locationName,
+          county: nextCounty,
           notificationPreferences: form.notificationPreferences,
           ...(passwordChangeRequested
             ? {
@@ -162,9 +174,9 @@ export default function NotificationSettingsPanel({
         </div>
 
         <div className="profile-meta-chip">
-          <span>Contact status</span>
-          <strong>{form.phoneNumber.trim() ? "Phone saved" : "Phone missing"}</strong>
-          <small>{form.phoneNumber.trim() || "Add a number to unlock SMS and WhatsApp delivery."}</small>
+          <span>Alert area</span>
+          <strong>{form.county.trim() || "County missing"}</strong>
+          <small>{form.locationName.trim() || "Set your local area so automatic outbreak warnings reach the right county."}</small>
         </div>
 
         <div className="profile-meta-chip">
@@ -173,6 +185,12 @@ export default function NotificationSettingsPanel({
           <small>In-app alerts remain visible from your dashboard tabs.</small>
         </div>
       </div>
+
+      {!form.county.trim() && requiresCounty ? (
+        <div className="dashboard-banner dashboard-banner-warning">
+          Save your county to receive local livestock and crop outbreak warnings automatically.
+        </div>
+      ) : null}
 
       <form className="dashboard-form" onSubmit={submit}>
         <div className="form-grid">
@@ -184,6 +202,16 @@ export default function NotificationSettingsPanel({
           <label>
             <span>Email address</span>
             <input className="input" type="email" name="email" value={form.email} onChange={onChange} placeholder="you@example.com" />
+          </label>
+
+          <label>
+            <span>County</span>
+            <input className="input" name="county" value={form.county} onChange={onChange} placeholder="e.g., Nakuru" />
+          </label>
+
+          <label>
+            <span>Local area</span>
+            <input className="input" name="locationName" value={form.locationName} onChange={onChange} placeholder="e.g., Molo, Bahati, or ward name" />
           </label>
         </div>
 
@@ -285,7 +313,7 @@ export default function NotificationSettingsPanel({
         </section>
 
         <p className="settings-note">
-          Use an international phone number format. Email, phone, notification preferences, and password changes are saved directly to your FarmGuard account.
+          FarmGuard uses your saved county to target automatic local outbreak warnings, while your phone and channel preferences control how those alerts reach you.
         </p>
 
         <div className="form-actions">

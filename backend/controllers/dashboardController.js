@@ -1,6 +1,8 @@
-import Alert from "../models/Alert.js";
+﻿import Alert from "../models/Alert.js";
 import Report, { REPORT_TYPES } from "../models/Report.js";
 import { buildEnvironmentalBrief } from "../services/environmentalRiskService.js";
+import { refreshAutoReportWarningsSafely } from "../services/outbreakWarningService.js";
+import { isAlertVisibleToUser } from "../utils/alertAudience.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { buildRiskMapPayload, clampRiskMapDays, isValidRiskMapType } from "../utils/riskMap.js";
 import { serializeAlert, serializeReport } from "../utils/serializers.js";
@@ -87,14 +89,18 @@ function buildQuickActions(role) {
 }
 
 export const getDashboardOverview = asyncHandler(async (req, res) => {
-  const reportFilters = req.user.role === "FARMER" ? { reporter: req.user.id } : {};
-  const alertFilters = {
-    isActive: true,
-    targetRoles: { $in: [req.user.role, "ALL"] },
-  };
-  const canViewRecentReports = req.user.role !== "PARTNER";
+  await refreshAutoReportWarningsSafely();
 
-  const [recentReports, activeAlerts, totalReports, openReports, highRiskReports] = await Promise.all([
+  const reportFilters = req.user.role === "FARMER" ? { reporter: req.user.id } : {};
+  const canViewRecentReports = req.user.role !== "PARTNER";
+  const alertBaseFilters = req.user.role === "ADMIN"
+    ? { isActive: true }
+    : {
+        isActive: true,
+        targetRoles: { $in: [req.user.role, "ALL"] },
+      };
+
+  const [recentReports, rawAlerts, totalReports, openReports, highRiskReports] = await Promise.all([
     canViewRecentReports
       ? Report.find(reportFilters)
           .sort({ createdAt: -1 })
@@ -102,9 +108,9 @@ export const getDashboardOverview = asyncHandler(async (req, res) => {
           .populate("reporter", "name email role")
           .populate("review.reviewedBy", "name email role")
       : Promise.resolve([]),
-    Alert.find(alertFilters)
-      .sort({ createdAt: -1 })
-      .limit(6)
+    Alert.find(alertBaseFilters)
+      .sort({ updatedAt: -1, createdAt: -1 })
+      .limit(req.user.role === "ADMIN" ? 12 : 100)
       .populate("createdBy", "name role"),
     Report.countDocuments(reportFilters),
     Report.countDocuments({
@@ -116,6 +122,8 @@ export const getDashboardOverview = asyncHandler(async (req, res) => {
       severity: { $in: ["HIGH", "CRITICAL"] },
     }),
   ]);
+
+  const activeAlerts = rawAlerts.filter((alert) => isAlertVisibleToUser(alert, req.user, { adminBypass: true })).slice(0, 6);
 
   res.json({
     role: req.user.role,

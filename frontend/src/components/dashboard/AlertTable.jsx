@@ -1,4 +1,4 @@
-function formatDate(value) {
+﻿function formatDate(value) {
   if (!value) {
     return "--";
   }
@@ -70,6 +70,23 @@ function buildDeliveryLines(alert) {
   return lines.length ? lines : ["No external delivery requested."];
 }
 
+function buildSignalSummary(alert) {
+  if (alert.sourceKind !== "AUTO_REPORT_CLUSTER" || !alert.signalSummary?.reportCount) {
+    return "";
+  }
+
+  const reportType = alert.signalSummary.reportType?.toLowerCase() || "report";
+  return `Detected from ${alert.signalSummary.reportCount} recent ${reportType} reports, ${alert.signalSummary.highRiskCount} high-risk, and ${alert.signalSummary.verifiedCount} verified cases.`;
+}
+
+function getAlertSourceLabel(alert) {
+  if (alert.sourceKind === "AUTO_REPORT_CLUSTER") {
+    return "FarmGuard AI";
+  }
+
+  return alert.createdBy?.name ? `By ${alert.createdBy.name}` : "FarmGuard admin";
+}
+
 export default function AlertTable({
   alerts,
   title = "Published alerts",
@@ -113,12 +130,14 @@ export default function AlertTable({
                 const isToggling = isProcessing && processingAction === "toggle";
                 const isDelivering = isProcessing && processingAction === "deliver";
                 const hasExternalChannel = alert.deliveryChannels?.some((channel) => channel === "SMS" || channel === "WHATSAPP");
+                const signalSummary = buildSignalSummary(alert);
 
                 return (
                   <tr key={alert.id}>
                     <td>
                       <strong>{alert.title}</strong>
                       <p>{alert.message}</p>
+                      {signalSummary ? <span className="table-detail-note">{signalSummary}</span> : null}
                       {alert.actionItems?.length ? (
                         <span className="table-detail-note">Actions: {formatList(alert.actionItems)}</span>
                       ) : null}
@@ -136,7 +155,7 @@ export default function AlertTable({
                     </td>
                     <td>
                       <strong>{formatList(alert.targetRoles)}</strong>
-                      <span>{alert.createdBy?.name ? `By ${alert.createdBy.name}` : "FarmGuard admin"}</span>
+                      <span>{getAlertSourceLabel(alert)}</span>
                     </td>
                     <td>
                       <div className="channel-chip-row">
@@ -163,7 +182,7 @@ export default function AlertTable({
                         ) : null}
                       </div>
                     </td>
-                    <td>{formatDate(alert.createdAt)}</td>
+                    <td>{formatDate(alert.updatedAt || alert.createdAt)}</td>
                     <td>
                       <div className="table-actions">
                         <button

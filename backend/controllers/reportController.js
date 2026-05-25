@@ -1,6 +1,7 @@
-import mongoose from "mongoose";
+﻿import mongoose from "mongoose";
 
 import Report, { REPORT_SEVERITIES, REPORT_STATUSES, REPORT_TYPES } from "../models/Report.js";
+import { refreshAutoReportWarningsSafely } from "../services/outbreakWarningService.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { resolveLocationCoordinates } from "../utils/locationResolver.js";
@@ -107,6 +108,8 @@ export const createReport = asyncHandler(async (req, res) => {
     .populate("reporter", "name email role")
     .populate("review.reviewedBy", "name email role");
 
+  await refreshAutoReportWarningsSafely();
+
   res.status(201).json({
     message: "Report submitted successfully.",
     report: serializeReport(hydratedReport),
@@ -207,6 +210,8 @@ export const updateReport = asyncHandler(async (req, res) => {
     .populate("reporter", "name email role")
     .populate("review.reviewedBy", "name email role");
 
+  await refreshAutoReportWarningsSafely();
+
   res.json({
     message: "Report updated successfully.",
     report: serializeReport(hydratedReport),
@@ -245,6 +250,7 @@ export const deleteReport = asyncHandler(async (req, res) => {
   const report = await Report.findById(reportId);
   assertEditableFarmerReport(report, req.user.id);
   await report.deleteOne();
+  await refreshAutoReportWarningsSafely();
 
   res.json({
     message: "Report deleted successfully.",
@@ -293,6 +299,8 @@ export const reviewReport = asyncHandler(async (req, res) => {
   const hydratedReport = await Report.findById(reportId)
     .populate("reporter", "name email role")
     .populate("review.reviewedBy", "name email role");
+
+  await refreshAutoReportWarningsSafely();
 
   res.json({
     message: "Report review saved successfully.",

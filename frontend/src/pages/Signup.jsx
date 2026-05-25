@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 
 import { apiPost, extractApiErrorMessage } from "../lib/api";
@@ -15,6 +15,8 @@ export default function Signup() {
     password: "",
     role: "FARMER",
     phoneNumber: "",
+    county: "",
+    locationName: "",
     smsOptIn: true,
     whatsappOptIn: true,
   });
@@ -39,6 +41,12 @@ export default function Signup() {
     setBusy(true);
     setMsg("");
 
+    if (["FARMER", "VET"].includes(form.role) && !form.county.trim()) {
+      setBusy(false);
+      setMsg("County is required so FarmGuard can send local outbreak warnings to the right area.");
+      return;
+    }
+
     try {
       const data = await apiPost("/api/auth/register", {
         name: form.name,
@@ -46,6 +54,8 @@ export default function Signup() {
         password: form.password,
         role: form.role,
         phoneNumber: form.phoneNumber,
+        county: form.county,
+        locationName: form.locationName,
         notificationPreferences: {
           sms: form.smsOptIn,
           whatsapp: form.whatsappOptIn,
@@ -96,6 +106,28 @@ export default function Signup() {
             required
             autoComplete="email"
             placeholder="you@example.com"
+          />
+
+          <label className="label" htmlFor="county">County</label>
+          <input
+            id="county"
+            className="input"
+            name="county"
+            value={form.county}
+            onChange={onChange}
+            autoComplete="address-level1"
+            placeholder="e.g., Nakuru"
+          />
+
+          <label className="label" htmlFor="locationName">Local area</label>
+          <input
+            id="locationName"
+            className="input"
+            name="locationName"
+            value={form.locationName}
+            onChange={onChange}
+            autoComplete="address-level2"
+            placeholder="e.g., Molo or ward name"
           />
 
           <label className="label" htmlFor="phoneNumber">Phone number</label>
