@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+﻿import mongoose from "mongoose";
 
 export const REPORT_TYPES = ["LIVESTOCK", "CROP", "ENVIRONMENT"];
 export const REPORT_SEVERITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
@@ -46,7 +46,7 @@ const reportSchema = new mongoose.Schema(
     },
     source: {
       type: String,
-      enum: ["FARMER_APP", "VET_APP", "API_IMPORT"],
+      enum: ["FARMER_APP", "VET_APP", "API_IMPORT", "USSD", "WHATSAPP"],
       default: "FARMER_APP",
     },
     location: {

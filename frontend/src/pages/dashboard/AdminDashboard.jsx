@@ -12,6 +12,7 @@ import EnvironmentalProviderSyncPanel from "../../components/dashboard/Environme
 import EnvironmentalSignalComposerModal from "../../components/dashboard/EnvironmentalSignalComposerModal";
 import EnvironmentalSignalTable from "../../components/dashboard/EnvironmentalSignalTable";
 import KnowledgeBasePanel from "../../components/dashboard/KnowledgeBasePanel";
+import LocalizedRiskPanel from "../../components/dashboard/LocalizedRiskPanel";
 import NotificationSettingsPanel from "../../components/dashboard/NotificationSettingsPanel";
 import QuickActionsPanel from "../../components/dashboard/QuickActionsPanel";
 import ReportList from "../../components/dashboard/ReportList";
@@ -545,6 +546,16 @@ export default function AdminDashboard() {
       content: <AnalyticsPanel />,
     },
     {
+      id: "risk-scores",
+      label: "Risk Scores",
+      content: (
+        <LocalizedRiskPanel
+          title="Localized operational risk scores"
+          description="Track the 0-100 county score layer that converts recent livestock and crop reports into action-ready early warning signals."
+        />
+      ),
+    },
+    {
       id: "environmental-intel",
       label: "Environmental Intel",
       lazy: true,
@@ -711,4 +722,5 @@ export default function AdminDashboard() {
     </DashboardShell>
   );
 }
+
 

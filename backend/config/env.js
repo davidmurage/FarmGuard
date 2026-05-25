@@ -1,4 +1,4 @@
-import dotenv from "dotenv";
+﻿import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -57,4 +57,6 @@ export const env = {
   twilioSmsFrom: process.env.TWILIO_SMS_FROM || "",
   twilioMessagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID || "",
   twilioWhatsAppFrom: process.env.TWILIO_WHATSAPP_FROM || "",
+  fieldChannelSecret: process.env.FIELD_CHANNEL_SECRET || "",
+  fieldChannelAutoCreateUsers: parseBoolean(process.env.FIELD_CHANNEL_AUTO_CREATE_USERS, true),
 };

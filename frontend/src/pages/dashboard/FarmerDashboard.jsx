@@ -5,6 +5,7 @@ import DashboardShell from "../../components/dashboard/DashboardShell";
 import DashboardTabs from "../../components/dashboard/DashboardTabs";
 import EnvironmentalBriefPanel from "../../components/dashboard/EnvironmentalBriefPanel";
 import KnowledgeBasePanel from "../../components/dashboard/KnowledgeBasePanel";
+import LocalizedRiskPanel from "../../components/dashboard/LocalizedRiskPanel";
 import NotificationSettingsPanel from "../../components/dashboard/NotificationSettingsPanel";
 import QuickActionsPanel from "../../components/dashboard/QuickActionsPanel";
 import ReportComposerModal from "../../components/dashboard/ReportComposerModal";
@@ -304,6 +305,16 @@ export default function FarmerDashboard() {
       content: <AlertList alerts={data.activeAlerts} />,
     },
     {
+      id: "risk-scores",
+      label: "Risk Scores",
+      content: (
+        <LocalizedRiskPanel
+          title="Localized outbreak risk scores"
+          description="FarmGuard converts recent livestock and crop reports into 0-100 county scores so you can see where local pressure is rising fastest."
+        />
+      ),
+    },
+    {
       id: "environmental-intel",
       label: "Environmental Intel",
       lazy: true,
@@ -352,4 +363,5 @@ export default function FarmerDashboard() {
     </DashboardShell>
   );
 }
+
 

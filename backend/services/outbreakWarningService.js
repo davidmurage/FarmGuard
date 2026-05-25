@@ -1,13 +1,14 @@
 ﻿import Alert from "../models/Alert.js";
 import Report from "../models/Report.js";
 import { normalizeCountyKey } from "../utils/locationTargeting.js";
+import { dispatchAlertDeliveries } from "./alertDeliveryService.js";
 
 const AUTO_REPORT_SOURCE = "AUTO_REPORT_CLUSTER";
 const AUTO_ALERT_TARGET_ROLES = ["FARMER", "VET"];
-const AUTO_ALERT_CHANNELS = ["IN_APP"];
-const SUPPORTED_REPORT_TYPES = new Set(["LIVESTOCK", "CROP"]);
-const ACTIVE_REPORT_STATUSES = ["SUBMITTED", "UNDER_REVIEW", "VERIFIED"];
-const REPORT_WINDOW_DAYS = 14;
+const AUTO_ALERT_BASE_CHANNELS = ["IN_APP", "SMS"];
+export const OUTBREAK_SUPPORTED_REPORT_TYPES = ["LIVESTOCK", "CROP"];
+export const OUTBREAK_ACTIVE_REPORT_STATUSES = ["SUBMITTED", "UNDER_REVIEW", "VERIFIED"];
+export const OUTBREAK_REPORT_WINDOW_DAYS = 14;
 const MAX_DOMINANT_SIGNALS = 4;
 const STOP_WORDS = new Set([
   "a",
@@ -44,6 +45,7 @@ const STOP_WORDS = new Set([
   "reports",
   "suspected",
 ]);
+const SUPPORTED_REPORT_TYPES = new Set(OUTBREAK_SUPPORTED_REPORT_TYPES);
 
 let refreshInFlight = null;
 
@@ -211,7 +213,7 @@ function buildAlertMessage(cluster) {
     ? ` Repeated warning signs include ${formatSignalList(cluster.dominantSignals.map(titleCasePhrase))}.`
     : "";
 
-  return `FarmGuard detected ${cluster.reportCount} recent ${cluster.reportType.toLowerCase()} reports in ${cluster.county} during the last ${REPORT_WINDOW_DAYS} days, including ${cluster.highRiskCount} high-risk and ${cluster.verifiedCount} verified cases.${repeatedSignals} This pattern suggests an elevated chance of a ${domainLabel} outbreak if new cases continue.`;
+  return `FarmGuard detected ${cluster.reportCount} recent ${cluster.reportType.toLowerCase()} reports in ${cluster.county} during the last ${OUTBREAK_REPORT_WINDOW_DAYS} days, including ${cluster.highRiskCount} high-risk and ${cluster.verifiedCount} verified cases.${repeatedSignals} This pattern suggests an elevated chance of a ${domainLabel} outbreak if new cases continue.`;
 }
 
 function buildSignalSummary(cluster) {
@@ -223,7 +225,7 @@ function buildSignalSummary(cluster) {
     verifiedCount: cluster.verifiedCount,
     dominantSignals: cluster.dominantSignals.map(titleCasePhrase),
     combinedRiskScore: cluster.clusterScore,
-    detectionWindowDays: REPORT_WINDOW_DAYS,
+    detectionWindowDays: OUTBREAK_REPORT_WINDOW_DAYS,
     latestReportAt: cluster.latestReportAt,
   };
 }
@@ -256,10 +258,16 @@ function hasAlertChanged(alert, payload) {
     || JSON.stringify(currentSignalSummary) !== JSON.stringify(nextSignalSummary);
 }
 
+function buildAutoDeliveryChannels(existingAlert = null) {
+  const channels = new Set(existingAlert?.deliveryChannels?.length ? existingAlert.deliveryChannels : AUTO_ALERT_BASE_CHANNELS);
+  channels.add("IN_APP");
+  channels.add("SMS");
+  return Array.from(channels);
+}
+
 function buildAutoAlertPayload(cluster, existingAlert = null) {
   const riskLevel = cluster.riskLevel;
   const statusLabel = riskLevel === "MEDIUM" ? "Watch" : "Warning";
-  const preservedChannels = existingAlert?.deliveryChannels?.length ? existingAlert.deliveryChannels : AUTO_ALERT_CHANNELS;
 
   return {
     title: `${cluster.county} ${formatReportTypeTitle(cluster.reportType)} Outbreak ${statusLabel}`,
@@ -270,7 +278,7 @@ function buildAutoAlertPayload(cluster, existingAlert = null) {
     targetRoles: AUTO_ALERT_TARGET_ROLES,
     targetCounties: [cluster.county],
     targetCountyKeys: [normalizeCountyKey(cluster.county)],
-    deliveryChannels: preservedChannels,
+    deliveryChannels: buildAutoDeliveryChannels(existingAlert),
     actionItems: buildActionItems(cluster),
     isActive: true,
     sourceKind: AUTO_REPORT_SOURCE,
@@ -293,7 +301,7 @@ function createEmptyCluster(report) {
   };
 }
 
-function buildClusters(reports) {
+export function buildClusters(reports) {
   const clusterMap = new Map();
 
   for (const report of reports) {
@@ -355,10 +363,27 @@ function buildClusters(reports) {
     .sort((left, right) => right.clusterScore - left.clusterScore || right.reportCount - left.reportCount);
 }
 
+function hasExternalDeliveryChannels(channels = []) {
+  return channels.some((channel) => channel === "SMS" || channel === "WHATSAPP");
+}
+
+async function queueAutoAlertDeliveries(alert) {
+  if (!alert.isActive || !hasExternalDeliveryChannels(alert.deliveryChannels)) {
+    return;
+  }
+
+  try {
+    await dispatchAlertDeliveries(alert);
+  } catch (error) {
+    console.error("FarmGuard auto outbreak delivery dispatch failed", error);
+  }
+}
+
 async function saveAutoAlert(existingAlert, payload) {
   if (!existingAlert) {
     const createdAlert = new Alert(payload);
     await createdAlert.save();
+    await queueAutoAlertDeliveries(createdAlert);
     return "created";
   }
 
@@ -381,17 +406,18 @@ async function saveAutoAlert(existingAlert, payload) {
   existingAlert.sourceKey = payload.sourceKey;
   existingAlert.signalSummary = payload.signalSummary;
   await existingAlert.save();
+  await queueAutoAlertDeliveries(existingAlert);
   return "updated";
 }
 
 export async function refreshAutoReportWarnings() {
-  const since = new Date(Date.now() - REPORT_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  const since = new Date(Date.now() - OUTBREAK_REPORT_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
   const [reports, currentAutoAlerts] = await Promise.all([
     Report.find({
       createdAt: { $gte: since },
-      status: { $in: ACTIVE_REPORT_STATUSES },
-      reportType: { $in: Array.from(SUPPORTED_REPORT_TYPES) },
+      status: { $in: OUTBREAK_ACTIVE_REPORT_STATUSES },
+      reportType: { $in: OUTBREAK_SUPPORTED_REPORT_TYPES },
     }).select("reportType severity status symptoms title location review.diagnosis createdAt"),
     Alert.find({ sourceKind: AUTO_REPORT_SOURCE }),
   ]);
@@ -426,7 +452,7 @@ export async function refreshAutoReportWarnings() {
   }
 
   return {
-    windowDays: REPORT_WINDOW_DAYS,
+    windowDays: OUTBREAK_REPORT_WINDOW_DAYS,
     activeClusterCount: activeClusters.length,
     created,
     updated,

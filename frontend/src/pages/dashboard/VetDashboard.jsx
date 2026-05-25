@@ -5,6 +5,7 @@ import DashboardShell from "../../components/dashboard/DashboardShell";
 import DashboardTabs from "../../components/dashboard/DashboardTabs";
 import EnvironmentalBriefPanel from "../../components/dashboard/EnvironmentalBriefPanel";
 import KnowledgeBasePanel from "../../components/dashboard/KnowledgeBasePanel";
+import LocalizedRiskPanel from "../../components/dashboard/LocalizedRiskPanel";
 import NotificationSettingsPanel from "../../components/dashboard/NotificationSettingsPanel";
 import QuickActionsPanel from "../../components/dashboard/QuickActionsPanel";
 import ReportList from "../../components/dashboard/ReportList";
@@ -254,6 +255,16 @@ export default function VetDashboard() {
       ),
     },
     {
+      id: "risk-scores",
+      label: "Risk Scores",
+      content: (
+        <LocalizedRiskPanel
+          title="Localized field risk scores"
+          description="Use the 0-100 county score view to see where livestock or crop pressure is intensifying before field deployment."
+        />
+      ),
+    },
+    {
       id: "environmental-intel",
       label: "Environmental Intel",
       lazy: true,
@@ -303,4 +314,5 @@ export default function VetDashboard() {
     </DashboardShell>
   );
 }
+
 

@@ -1,9 +1,10 @@
-import jwt from "jsonwebtoken";
+﻿import jwt from "jsonwebtoken";
 
+import User from "../models/User.js";
 import { env } from "../config/env.js";
 import { ApiError } from "../utils/apiError.js";
 
-export function auth(req, _res, next) {
+export async function auth(req, _res, next) {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
 
@@ -16,7 +17,21 @@ export function auth(req, _res, next) {
   }
 
   try {
-    req.user = jwt.verify(token, env.jwtSecret);
+    const decoded = jwt.verify(token, env.jwtSecret);
+    const user = await User.findById(decoded.id).select("_id name email role location");
+
+    if (!user) {
+      return next(new ApiError(401, "User account not found."));
+    }
+
+    req.user = {
+      id: String(user._id),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      location: user.location?.toObject ? user.location.toObject() : user.location || {},
+    };
+
     return next();
   } catch {
     return next(new ApiError(401, "Invalid token."));
