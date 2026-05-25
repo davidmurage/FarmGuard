@@ -1,47 +1,12 @@
 ﻿import mongoose from "mongoose";
 
 import Report, { REPORT_SEVERITIES, REPORT_STATUSES, REPORT_TYPES } from "../models/Report.js";
+import { createStructuredReport, resolveReportCoordinates, sanitizeSymptoms } from "../services/reportIngestionService.js";
 import { refreshAutoReportWarningsSafely } from "../services/outbreakWarningService.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { resolveLocationCoordinates } from "../utils/locationResolver.js";
 import { serializeReport } from "../utils/serializers.js";
-
-function sanitizeSymptoms(symptoms) {
-  if (!Array.isArray(symptoms)) {
-    return [];
-  }
-
-  return symptoms.map((symptom) => String(symptom).trim()).filter(Boolean);
-}
-
-function sanitizeCoordinates(latitude, longitude) {
-  const parsedLatitude = Number(latitude);
-  const parsedLongitude = Number(longitude);
-
-  if (!Number.isFinite(parsedLatitude) || !Number.isFinite(parsedLongitude)) {
-    return undefined;
-  }
-
-  return {
-    latitude: parsedLatitude,
-    longitude: parsedLongitude,
-  };
-}
-
-function resolveReportCoordinates({ latitude, longitude, locationName, county, fallbackSeed }) {
-  const explicitCoordinates = sanitizeCoordinates(latitude, longitude);
-
-  if (explicitCoordinates) {
-    return explicitCoordinates;
-  }
-
-  return resolveLocationCoordinates({
-    county,
-    locationName,
-    fallbackSeed,
-  }).coordinates;
-}
 
 function sanitizeReviewActions(actions) {
   if (!Array.isArray(actions)) {
@@ -66,47 +31,21 @@ function assertEditableFarmerReport(report, userId) {
 }
 
 export const createReport = asyncHandler(async (req, res) => {
-  const reportType = req.body.reportType;
-  const title = req.body.title?.trim();
-  const description = req.body.description?.trim();
-  const locationName = req.body.locationName?.trim();
-  const county = req.body.county?.trim() || "Unspecified";
-  const severity = REPORT_SEVERITIES.includes(req.body.severity) ? req.body.severity : "MEDIUM";
-  const symptoms = sanitizeSymptoms(req.body.symptoms);
-
-  if (!REPORT_TYPES.includes(reportType)) {
-    throw new ApiError(400, "A valid report type is required.");
-  }
-
-  if (!title || !description || !locationName) {
-    throw new ApiError(400, "Title, description and location are required.");
-  }
-
-  const report = await Report.create({
-    reporter: req.user.id,
-    reportType,
-    title,
-    description,
-    severity,
-    symptoms,
+  const hydratedReport = await createStructuredReport({
+    reporterId: req.user.id,
+    reporterRole: req.user.role,
+    reportType: req.body.reportType,
+    title: req.body.title,
+    description: req.body.description,
+    severity: req.body.severity,
+    symptoms: sanitizeSymptoms(req.body.symptoms),
     source: req.user.role === "VET" ? "VET_APP" : "FARMER_APP",
     status: req.user.role === "FARMER" ? "SUBMITTED" : "UNDER_REVIEW",
-    location: {
-      name: locationName,
-      county,
-      coordinates: resolveReportCoordinates({
-        latitude: req.body.latitude,
-        longitude: req.body.longitude,
-        locationName,
-        county,
-        fallbackSeed: title,
-      }),
-    },
+    locationName: req.body.locationName,
+    county: req.body.county,
+    latitude: req.body.latitude,
+    longitude: req.body.longitude,
   });
-
-  const hydratedReport = await Report.findById(report._id)
-    .populate("reporter", "name email role")
-    .populate("review.reviewedBy", "name email role");
 
   await refreshAutoReportWarningsSafely();
 

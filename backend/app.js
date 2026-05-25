@@ -1,4 +1,4 @@
-import cors from "cors";
+﻿import cors from "cors";
 import express from "express";
 import morgan from "morgan";
 
@@ -9,6 +9,7 @@ import analyticsRoutes from "./routes/analytics.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import environmentalModelRoutes from "./routes/environmentalModel.js";
 import environmentalSignalRoutes from "./routes/environmentalSignals.js";
+import fieldChannelRoutes from "./routes/fieldChannels.js";
 import knowledgeRoutes from "./routes/knowledge.js";
 import reportRoutes from "./routes/reports.js";
 import { errorHandler, notFound } from "./middleware/errorHandler.js";
@@ -29,7 +30,17 @@ app.get("/", (_req, res) => {
   res.json({
     name: "FarmGuard API",
     status: "ok",
-    modules: ["auth", "reports", "alerts", "dashboard", "knowledge", "analytics", "environmental-signals", "environmental-model"],
+    modules: [
+      "auth",
+      "reports",
+      "alerts",
+      "dashboard",
+      "knowledge",
+      "analytics",
+      "environmental-signals",
+      "environmental-model",
+      "field-channels",
+    ],
   });
 });
 
@@ -45,6 +56,7 @@ app.use("/api/environmental-signals", environmentalSignalRoutes);
 app.use("/api/environmental-model", environmentalModelRoutes);
 app.use("/api/knowledge", knowledgeRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/field-channels", fieldChannelRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

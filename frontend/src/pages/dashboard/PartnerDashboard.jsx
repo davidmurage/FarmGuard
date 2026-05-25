@@ -4,6 +4,7 @@ import DashboardShell from "../../components/dashboard/DashboardShell";
 import DashboardTabs from "../../components/dashboard/DashboardTabs";
 import EnvironmentalBriefPanel from "../../components/dashboard/EnvironmentalBriefPanel";
 import KnowledgeBasePanel from "../../components/dashboard/KnowledgeBasePanel";
+import LocalizedRiskPanel from "../../components/dashboard/LocalizedRiskPanel";
 import NotificationSettingsPanel from "../../components/dashboard/NotificationSettingsPanel";
 import QuickActionsPanel from "../../components/dashboard/QuickActionsPanel";
 import RiskMapPanel from "../../components/dashboard/RiskMapPanel";
@@ -52,6 +53,16 @@ export default function PartnerDashboard() {
           defaultAudience="partner"
           audienceOptions={PARTNER_AUDIENCE_OPTIONS}
           reportLabel="planning snapshot"
+        />
+      ),
+    },
+    {
+      id: "risk-scores",
+      label: "Risk Scores",
+      content: (
+        <LocalizedRiskPanel
+          title="County risk score brief"
+          description="Review anonymized 0-100 county scores generated from recent livestock and crop signals for planning and support decisions."
         />
       ),
     },
@@ -134,4 +145,5 @@ export default function PartnerDashboard() {
     </DashboardShell>
   );
 }
+
 
